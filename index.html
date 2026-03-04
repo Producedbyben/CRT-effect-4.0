@@ -22,6 +22,16 @@
             <label>Preset
               <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
             </label>
+            <div class="row preset-actions-row">
+              <button id="savePresetBtn" type="button">Save Current as Preset</button>
+              <button id="renamePresetBtn" type="button">Rename Preset</button>
+            </div>
+            <div class="row preset-actions-row">
+              <button id="deletePresetBtn" type="button">Delete Preset</button>
+              <button id="exportPresetsBtn" type="button">Export Presets JSON</button>
+            </div>
+            <button id="importPresetsBtn" type="button">Import Presets JSON</button>
+            <input id="importPresetsInput" type="file" accept="application/json,.json" hidden />
           </div>
         </details>
 

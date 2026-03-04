@@ -212,3 +212,33 @@ progress {
   font-size: 0.76rem;
   color: #aaaaaa;
 }
+
+
+.preset-actions-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.preset-group {
+  border: 1px solid #313131;
+  border-radius: 6px;
+  padding: 0.4rem;
+  background: #1d1d1d;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.preset-group-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9eb7df;
+}
+
+#presetSelect {
+  display: grid;
+  gap: 0.4rem;
+}
+
+#presetSelect button[data-preset-origin="builtin"] {
+  border-style: dashed;
+}
