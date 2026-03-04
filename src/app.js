@@ -572,6 +572,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const previewBuffer = document.createElement("canvas");
   const exportBtn = document.getElementById("exportBtn");
   const downloadStillBtn = document.getElementById("downloadStillBtn");
+  const saveProjectBtn = document.getElementById("saveProjectBtn");
+  const loadProjectBtn = document.getElementById("loadProjectBtn");
+  const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
+  const projectFileInput = document.getElementById("projectFileInput");
   const cancelExportBtn = document.getElementById("cancelExportBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
   const resetSourceBtn = document.getElementById("resetSourceBtn");
@@ -711,6 +715,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   function setExportAvailability() {
     exportBtn.disabled = !hasLoadedSource || isExporting;
     downloadStillBtn.disabled = !hasLoadedSource || isExporting;
+    saveProjectBtn.disabled = isExporting;
+    loadProjectBtn.disabled = isExporting;
+    copyShareLinkBtn.disabled = isExporting;
     cancelExportBtn.disabled = !isExporting;
     resetSourceBtn.disabled = isExporting;
     resetParamsBtn.disabled = isExporting;
@@ -890,6 +897,236 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function readParams() {
     return Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+  }
+
+  function getNumericInputBounds(id, fallbackMin = -Infinity, fallbackMax = Infinity) {
+    const input = document.getElementById(id);
+    if (!input) return { min: fallbackMin, max: fallbackMax };
+    const min = Number(input.min);
+    const max = Number(input.max);
+    return {
+      min: Number.isFinite(min) ? min : fallbackMin,
+      max: Number.isFinite(max) ? max : fallbackMax,
+    };
+  }
+
+  function clampNumber(value, min, max) {
+    if (!Number.isFinite(value)) return null;
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function encodeStateForUrl(state) {
+    return btoa(encodeURIComponent(JSON.stringify(state)));
+  }
+
+  function decodeStateFromUrl(encoded) {
+    return JSON.parse(decodeURIComponent(atob(encoded)));
+  }
+
+  function createProjectModel({ compact = false } = {}) {
+    const exportFormat = exportFormatControl?.getValue() || "mp4";
+    return {
+      version: 1,
+      activePresetName: presetControl?.getValue() || "custom",
+      sliders: readParams(),
+      preview: {
+        mode: previewModeControl?.getValue() || "still",
+        scale: getPreviewScale(),
+        sourceScale: getSourceScale(),
+        quality: getPreviewMaxPixels(),
+        timestamp: Number(previewTargetSeconds || previewFrameSeconds || 0),
+      },
+      export: {
+        fps: Number(document.getElementById("fps").value),
+        duration: Number(document.getElementById("duration").value),
+        format: exportFormat,
+        quality: Number(document.getElementById("exportQuality").value),
+        includeAudio: exportFormat === "webm" ? document.getElementById("includeOriginalAudio").checked : false,
+      },
+      ...(compact ? {} : { savedAt: new Date().toISOString() }),
+    };
+  }
+
+  function applyProjectState(model, { fromUrl = false } = {}) {
+    const warnings = [];
+    if (!model || typeof model !== "object" || Array.isArray(model)) {
+      throw new Error("Project data must be a JSON object.");
+    }
+
+    const allowedTopLevel = new Set(["version", "activePresetName", "sliders", "preview", "export", "savedAt"]);
+    for (const key of Object.keys(model)) {
+      if (!allowedTopLevel.has(key)) {
+        warnings.push(`Unknown top-level field "${key}" was ignored.`);
+      }
+    }
+
+    const sliderSource = model.sliders && typeof model.sliders === "object" ? model.sliders : null;
+    if (!sliderSource) {
+      warnings.push("Missing sliders object; current slider values were kept.");
+    }
+
+    if (sliderSource) {
+      for (const id of controlIds) {
+        if (!(id in sliderSource)) {
+          warnings.push(`Missing slider field "${id}"; kept current value.`);
+          continue;
+        }
+        const slider = document.getElementById(id);
+        const rawValue = Number(sliderSource[id]);
+        const { min, max } = getNumericInputBounds(id, -Infinity, Infinity);
+        const clamped = clampNumber(rawValue, min, max);
+        if (clamped === null) {
+          warnings.push(`Invalid slider value for "${id}"; kept current value.`);
+          continue;
+        }
+        if (clamped !== rawValue) {
+          warnings.push(`Slider "${id}" was out of range and was clamped.`);
+        }
+        slider.value = String(clamped);
+        slider.__syncRangeNumber?.();
+      }
+    }
+
+    const presetName = typeof model.activePresetName === "string" ? model.activePresetName : null;
+    if (!presetName) {
+      warnings.push("Missing activePresetName; preset selection unchanged.");
+    } else if (presets[presetName]) {
+      presetControl?.setValue(presetName, { silent: true });
+    } else {
+      warnings.push(`Unknown preset "${presetName}"; using current preset selection.`);
+    }
+
+    const preview = model.preview && typeof model.preview === "object" ? model.preview : null;
+    if (!preview) {
+      warnings.push("Missing preview object; preview controls unchanged.");
+    } else {
+      const mode = typeof preview.mode === "string" ? preview.mode : null;
+      if (mode === "still" || mode === "playback") {
+        previewModeControl?.setValue(mode, { silent: true });
+      } else {
+        warnings.push("Invalid or missing preview.mode; expected still or playback.");
+      }
+
+      const previewScaleOptions = [1, 0.75, 0.5, 0.33];
+      const previewScaleValue = clampNumber(Number(preview.scale), 0.1, 1);
+      if (previewScaleValue !== null) {
+        const nearest = previewScaleOptions.reduce((best, option) =>
+          Math.abs(option - previewScaleValue) < Math.abs(best - previewScaleValue) ? option : best,
+        previewScaleOptions[0]);
+        if (nearest !== previewScaleValue) warnings.push("preview.scale was mapped to nearest supported option.");
+        previewScaleControl?.setValue(String(nearest), { silent: true });
+      } else {
+        warnings.push("Invalid or missing preview.scale; preview scale unchanged.");
+      }
+
+      const sourceScaleOptions = [1, 0.75, 0.5, 0.33, 0.25];
+      const sourceScaleValue = clampNumber(Number(preview.sourceScale), 0.1, 1);
+      if (sourceScaleValue !== null) {
+        const nearest = sourceScaleOptions.reduce((best, option) =>
+          Math.abs(option - sourceScaleValue) < Math.abs(best - sourceScaleValue) ? option : best,
+        sourceScaleOptions[0]);
+        if (nearest !== sourceScaleValue) warnings.push("preview.sourceScale was mapped to nearest supported option.");
+        sourceScaleControl?.setValue(String(nearest), { silent: true });
+      } else {
+        warnings.push("Invalid or missing preview.sourceScale; source scale unchanged.");
+      }
+
+      const qualityOptions = [307200, 921600, 2073600, 0];
+      const qualityValue = clampNumber(Number(preview.quality), 0, 10_000_000);
+      if (qualityValue !== null) {
+        const nearest = qualityOptions.reduce((best, option) =>
+          Math.abs(option - qualityValue) < Math.abs(best - qualityValue) ? option : best,
+        qualityOptions[0]);
+        if (nearest !== qualityValue) warnings.push("preview.quality was mapped to nearest supported option.");
+        previewMaxPixelsControl?.setValue(String(nearest), { silent: true });
+      } else {
+        warnings.push("Invalid or missing preview.quality; preview quality unchanged.");
+      }
+
+      const previewTime = document.getElementById("previewTime");
+      const maxPreviewTime = Number(previewTime.max) || 0;
+      const timestampValue = clampNumber(Number(preview.timestamp), 0, maxPreviewTime);
+      if (timestampValue !== null) {
+        previewTargetSeconds = timestampValue;
+        previewFrameSeconds = timestampValue;
+        previewTime.value = timestampValue.toFixed(3);
+        previewTime.__syncRangeNumber?.();
+        previewNeedsSeek = loadedSourceType === "video";
+      } else {
+        warnings.push("Invalid or missing preview.timestamp; preview time unchanged.");
+      }
+    }
+
+    const exportState = model.export && typeof model.export === "object" ? model.export : null;
+    if (!exportState) {
+      warnings.push("Missing export object; export controls unchanged.");
+    } else {
+      const fpsBounds = getNumericInputBounds("fps", 1, 120);
+      const fpsValue = clampNumber(Number(exportState.fps), fpsBounds.min, fpsBounds.max);
+      if (fpsValue !== null) {
+        document.getElementById("fps").value = String(fpsValue);
+      } else {
+        warnings.push("Invalid or missing export.fps; FPS unchanged.");
+      }
+
+      const durationBounds = getNumericInputBounds("duration", 0.1, 60);
+      const durationValue = clampNumber(Number(exportState.duration), durationBounds.min, durationBounds.max);
+      if (durationValue !== null) {
+        document.getElementById("duration").value = String(durationValue);
+      } else {
+        warnings.push("Invalid or missing export.duration; duration unchanged.");
+      }
+
+      const exportQualityBounds = getNumericInputBounds("exportQuality", 0.5, 2.5);
+      const exportQualityValue = clampNumber(Number(exportState.quality), exportQualityBounds.min, exportQualityBounds.max);
+      if (exportQualityValue !== null) {
+        document.getElementById("exportQuality").value = String(exportQualityValue);
+      } else {
+        warnings.push("Invalid or missing export.quality; quality unchanged.");
+      }
+
+      const exportFormat = typeof exportState.format === "string" ? exportState.format : null;
+      if (exportFormat === "mp4" || exportFormat === "webm") {
+        exportFormatControl?.setValue(exportFormat, { silent: true });
+      } else {
+        warnings.push("Invalid or missing export.format; format unchanged.");
+      }
+
+      if (typeof exportState.includeAudio === "boolean") {
+        document.getElementById("includeOriginalAudio").checked = exportState.includeAudio;
+      } else {
+        warnings.push("Missing export.includeAudio; include-audio toggle unchanged.");
+      }
+    }
+
+    refreshRendererSource();
+    updatePreviewControlsState();
+    updateExportControlsState();
+    syncVideoPlaybackState();
+    markPreviewDirty();
+    progressEl.value = 0;
+
+    if (warnings.length > 0) {
+      setStatus(`${fromUrl ? "Link" : "Project"} loaded with warnings: ${warnings[0]}`, "warn");
+      console.warn("State load warnings:", warnings);
+    } else {
+      setStatus(`${fromUrl ? "Link" : "Project"} loaded successfully.`, "success");
+    }
+  }
+
+  function tryHydrateFromUrl() {
+    const url = new URL(window.location.href);
+    const encoded = url.searchParams.get("state") || (url.hash.startsWith("#state=") ? url.hash.slice(7) : "");
+    if (!encoded) return false;
+    try {
+      const parsed = decodeStateFromUrl(encoded);
+      applyProjectState(parsed, { fromUrl: true });
+      return true;
+    } catch (error) {
+      setStatus(`Couldn't load state from URL: ${error.message}`, "warn");
+      console.warn("URL state decode failed", error);
+      return true;
+    }
   }
 
   function getSafePresetName() {
@@ -1310,6 +1547,46 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     clearLoadedSource();
   });
 
+  saveProjectBtn.addEventListener("click", () => {
+    const model = createProjectModel();
+    const blob = new Blob([JSON.stringify(model, null, 2)], { type: "application/json" });
+    downloadBlob(blob, `crt-project-${Date.now()}.json`);
+    setStatus("Project saved to JSON.", "success");
+  });
+
+  loadProjectBtn.addEventListener("click", () => {
+    projectFileInput.click();
+  });
+
+  projectFileInput.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      applyProjectState(parsed);
+    } catch (error) {
+      setStatus(`Couldn't load project file: ${error.message}`, "error");
+    } finally {
+      projectFileInput.value = "";
+    }
+  });
+
+  copyShareLinkBtn.addEventListener("click", async () => {
+    try {
+      const compactState = createProjectModel({ compact: true });
+      const encoded = encodeStateForUrl(compactState);
+      const url = new URL(window.location.href);
+      url.searchParams.set("state", encoded);
+      url.hash = "";
+      const shareLink = url.toString();
+      await navigator.clipboard.writeText(shareLink);
+      setStatus("Share link copied to clipboard.", "success");
+    } catch (error) {
+      setStatus(`Couldn't copy share link: ${error.message}`, "error");
+    }
+  });
+
   for (const id of [...controlIds, "fps", "duration"]) {
     document.getElementById(id).addEventListener("input", () => {
       markPreviewDirty();
@@ -1372,6 +1649,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   updatePreviewControlsState();
   updateExportControlsState();
   syncPreviewTimeControl();
+  const hasUrlState = tryHydrateFromUrl();
   window.addEventListener("beforeunload", () => {
     if (loadedVideo?.objectUrl) {
       URL.revokeObjectURL(loadedVideo.objectUrl);
@@ -1382,6 +1660,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   });
 
 
-  setStatus("Load an image or video (MP4/WebM/MOV/etc.) to begin.", "info");
+  if (!hasUrlState) {
+    setStatus("Load an image or video (MP4/WebM/MOV/etc.) to begin.", "info");
+  }
   requestAnimationFrame(animate);
 })();
