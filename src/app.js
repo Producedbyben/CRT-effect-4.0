@@ -1387,7 +1387,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (loadedSourceType === "video" && loadedVideo?.video) {
       const video = loadedVideo.video;
       frameSeconds = stillMode ? previewTargetSeconds : video.currentTime;
-      await seekVideo(video, frameSeconds);
+      if (stillMode) {
+        await seekVideo(video, frameSeconds);
+      }
       setSourceForAllRenderers(video, getSourceScale());
     } else if (loadedImage) {
       setSourceForAllRenderers(loadedImage, getSourceScale());
@@ -1628,6 +1630,34 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
+  function waitForVideoReady(video) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        video.removeEventListener("loadeddata", handleReady);
+        video.removeEventListener("canplay", handleReady);
+        video.removeEventListener("error", handleError);
+      };
+
+      const handleReady = () => {
+        cleanup();
+        resolve();
+      };
+
+      const handleError = () => {
+        cleanup();
+        reject(new Error("Video failed to decode the first frame."));
+      };
+
+      video.addEventListener("loadeddata", handleReady, { once: true });
+      video.addEventListener("canplay", handleReady, { once: true });
+      video.addEventListener("error", handleError, { once: true });
+    });
+  }
+
   async function loadVideoFromFile(file) {
     const video = document.createElement("video");
     video.muted = true;
@@ -1639,6 +1669,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     video.src = objectUrl;
     video.load();
     await waitForVideoEvent(video, "loadedmetadata");
+    await waitForVideoReady(video);
     if (!Number.isFinite(video.duration) || video.duration <= 0) {
       throw new Error("Video metadata is invalid or duration is unavailable.");
     }
