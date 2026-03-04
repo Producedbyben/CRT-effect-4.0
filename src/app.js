@@ -574,6 +574,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const cancelExportBtn = document.getElementById("cancelExportBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
   const resetSourceBtn = document.getElementById("resetSourceBtn");
+  const downloadStillBtn = document.getElementById("downloadStillBtn");
   const imageInput = document.getElementById("imageInput");
   const presetSelect = document.getElementById("presetSelect");
 
@@ -586,6 +587,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "chromaticAberration",
     "noise",
     "pixelSize",
+    "advancedLineJitter",
+    "advancedTimebaseWobble",
+    "advancedHeadSwitching",
+    "advancedChromaDelay",
+    "advancedCrossColor",
+    "advancedDropouts",
+    "advancedGhosting",
+    "advancedInterlacing",
   ];
 
   let hasLoadedSource = false;
@@ -709,6 +718,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function setExportAvailability() {
     exportBtn.disabled = !hasLoadedSource || isExporting;
+    if (downloadStillBtn) downloadStillBtn.disabled = !hasLoadedSource || isExporting;
     cancelExportBtn.disabled = !isExporting;
     resetSourceBtn.disabled = isExporting;
     resetParamsBtn.disabled = isExporting;
@@ -1176,6 +1186,27 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     progressEl.value = 0;
   });
 
+
+  async function downloadPreviewStill() {
+    if (!hasLoadedSource) {
+      setStatus("Load an image or video before downloading a still.", "warn");
+      return;
+    }
+
+    const filename = `crt-still-${Date.now()}.png`;
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((nextBlob) => {
+        if (!nextBlob) {
+          reject(new Error("Canvas still export returned an empty blob."));
+          return;
+        }
+        resolve(nextBlob);
+      }, "image/png");
+    });
+    downloadBlob(blob, filename);
+    setStatus(`Still image downloaded: ${filename}`, "success");
+  }
+
   exportBtn.addEventListener("click", async () => {
     if (!hasLoadedSource) {
       setStatus("Load an image or video before exporting.", "warn");
@@ -1250,6 +1281,16 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       isExporting = false;
       activeExportController = null;
       setExportAvailability();
+    }
+  });
+
+
+  downloadStillBtn?.addEventListener("click", async () => {
+    try {
+      await downloadPreviewStill();
+    } catch (error) {
+      setStatus(`Still download failed: ${error.message}`, "error");
+      console.error(error);
     }
   });
 
