@@ -1,5 +1,3 @@
-import { CRTRendererGPU } from "./crt-renderer-gpu.js";
-
 const FALLBACK_PRESETS = {
   "Consumer TV": {
     scanlineStrength: 0.5,
@@ -74,9 +72,6 @@ const FALLBACK_PRESETS = {
 };
 
 const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
-const USER_PRESETS_STORAGE_KEY = "crt.userPresets.v1";
-const USER_PRESETS_SCHEMA_VERSION = 1;
-const BATCH_SETTINGS_STORAGE_KEY = "crt.batchSettings.v1";
 
 function seededNoise(x, y, frame) {
   const v = Math.sin(x * 12.9898 + y * 78.233 + frame * 19.17) * 43758.5453;
@@ -384,7 +379,7 @@ function getTargetBitrate(width, height, fps) {
   return Math.max(5_000_000, Math.min(35_000_000, estimated));
 }
 
-async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, autoDownload = true, outputName }) {
+async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1 }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
   }
@@ -478,11 +473,7 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   muxer.finalize();
 
   const blob = new Blob([target.buffer], { type: "video/mp4" });
-  if (autoDownload) {
-    const defaultName = `crt-export-${Date.now()}.mp4`;
-    downloadBlob(blob, outputName ? `${outputName}.mp4` : defaultName);
-  }
-  return blob;
+  downloadBlob(blob, `crt-export-${Date.now()}.mp4`);
 }
 
 function getSupportedWebmMimeType(withAudio) {
@@ -492,7 +483,7 @@ function getSupportedWebmMimeType(withAudio) {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
 }
 
-async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio, autoDownload = true, outputName }) {
+async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio }) {
   const width = canvas.width;
   const height = canvas.height;
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -546,9 +537,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const t = frame / fps;
     if (sourceVideo) {
       await seekVideo(sourceVideo, t);
-      setSourceForAllRenderers(sourceVideo, sourceScale());
+      renderer.setImage(sourceVideo, sourceScale());
     } else if (loadedImage) {
-      setSourceForAllRenderers(loadedImage, sourceScale());
+      renderer.setImage(loadedImage, sourceScale());
     }
 
     renderer.render(ctx, width, height, t, params, frame, fps);
@@ -569,130 +560,22 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   const blob = new Blob(chunks, { type: mimeType });
-  if (autoDownload) {
-    const defaultName = `crt-export-${Date.now()}.webm`;
-    downloadBlob(blob, outputName ? `${outputName}.webm` : defaultName);
-  }
-  return blob;
+  downloadBlob(blob, `crt-export-${Date.now()}.webm`);
 }
 
 (function boot() {
-  const cpuRenderer = new CRTRenderer();
-  const gpuSupported = CRTRendererGPU.isSupported();
-  const gpuRenderer = gpuSupported ? new CRTRendererGPU() : null;
-  let renderer = cpuRenderer;
-  let renderEngineControl;
-  let consistencyCheckDone = false;
-  const exportCanvasPool = [];
+  const renderer = new CRTRenderer();
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   const statusEl = document.getElementById("status");
   const progressEl = document.getElementById("progress");
   const previewBuffer = document.createElement("canvas");
   const exportBtn = document.getElementById("exportBtn");
-  const downloadStillBtn = document.getElementById("downloadStillBtn");
-  const saveProjectBtn = document.getElementById("saveProjectBtn");
-  const loadProjectBtn = document.getElementById("loadProjectBtn");
-  const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
-  const projectFileInput = document.getElementById("projectFileInput");
-  const savePresetBtn = document.getElementById("savePresetBtn");
-  const renamePresetBtn = document.getElementById("renamePresetBtn");
-  const deletePresetBtn = document.getElementById("deletePresetBtn");
-  const exportPresetsBtn = document.getElementById("exportPresetsBtn");
-  const importPresetsBtn = document.getElementById("importPresetsBtn");
-  const importPresetsInput = document.getElementById("importPresetsInput");
   const cancelExportBtn = document.getElementById("cancelExportBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
   const resetSourceBtn = document.getElementById("resetSourceBtn");
   const imageInput = document.getElementById("imageInput");
   const presetSelect = document.getElementById("presetSelect");
-  const batchInput = document.getElementById("batchInput");
-  const addBatchBtn = document.getElementById("addBatchBtn");
-  const clearBatchBtn = document.getElementById("clearBatchBtn");
-  const runBatchBtn = document.getElementById("runBatchBtn");
-  const cancelBatchBtn = document.getElementById("cancelBatchBtn");
-  const batchQueueList = document.getElementById("batchQueueList");
-  const batchSkipOnErrorEl = document.getElementById("batchSkipOnError");
-  const batchOverallProgressEl = document.getElementById("batchOverallProgress");
-
-  function applyRendererSelection({ announce = false } = {}) {
-    const selected = renderEngineControl?.getValue?.() || "auto";
-    const wantsGpu = selected === "gpu" || selected === "auto";
-    if (wantsGpu && gpuRenderer) {
-      renderer = gpuRenderer;
-      if (announce && selected === "gpu") setStatus("Render engine: GPU", "success");
-      return;
-    }
-    renderer = cpuRenderer;
-    if (selected === "gpu" && !gpuRenderer) {
-      setStatus("GPU renderer unavailable. Falling back to CPU.", "warn");
-      renderEngineControl?.setValue("cpu", { silent: true });
-      return;
-    }
-    if (announce && selected !== "auto") setStatus("Render engine: CPU", "info");
-  }
-
-  function setSourceForAllRenderers(img, sourceScale) {
-    cpuRenderer.setImage(img, sourceScale);
-    if (gpuRenderer) gpuRenderer.setImage(img, sourceScale);
-  }
-
-  function renderWithFallback(targetCtx, width, height, seconds, params, frameIndex, fps) {
-    try {
-      renderer.render(targetCtx, width, height, seconds, params, frameIndex, fps);
-    } catch (error) {
-      console.warn("Selected renderer failed; using CPU fallback.", error);
-      renderer = cpuRenderer;
-      renderEngineControl?.setValue("cpu", { silent: true });
-      setStatus("GPU renderer failed. Auto-fell back to CPU renderer.", "warn");
-      cpuRenderer.render(targetCtx, width, height, seconds, params, frameIndex, fps);
-    }
-  }
-
-  function getRenderTargetCanvas(width, height, { preferOffscreen = false } = {}) {
-    if (preferOffscreen && typeof OffscreenCanvas !== "undefined") {
-      return new OffscreenCanvas(width, height);
-    }
-    const pooled = exportCanvasPool.pop() || document.createElement("canvas");
-    pooled.width = width;
-    pooled.height = height;
-    return pooled;
-  }
-
-  function releaseRenderTargetCanvas(target) {
-    if (target instanceof HTMLCanvasElement) exportCanvasPool.push(target);
-  }
-
-  async function runConsistencyCheck() {
-    if (!gpuRenderer || consistencyCheckDone || !hasLoadedSource) return;
-    consistencyCheckDone = true;
-    const testCanvasA = document.createElement("canvas");
-    const testCanvasB = document.createElement("canvas");
-    testCanvasA.width = testCanvasB.width = 256;
-    testCanvasA.height = testCanvasB.height = 144;
-    const cpuCtx = testCanvasA.getContext("2d", { willReadFrequently: true });
-    const gpuCtx = testCanvasB.getContext("2d", { willReadFrequently: true });
-    const keyPresets = ["Consumer TV", "PVM/BVM", "VHS Composite"].filter((name) => presets[name]);
-    let totalDelta = 0;
-    for (const name of keyPresets) {
-      const params = normalizePresetValues(presets[name]);
-      cpuRenderer.render(cpuCtx, 256, 144, 0.25, params, 8, 30);
-      gpuRenderer.render(gpuCtx, 256, 144, 0.25, params, 8, 30);
-      const a = cpuCtx.getImageData(0, 0, 256, 144).data;
-      const b = gpuCtx.getImageData(0, 0, 256, 144).data;
-      let diff = 0;
-      for (let i = 0; i < a.length; i += 8) {
-        diff += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
-      }
-      totalDelta += diff / (a.length / 8);
-    }
-    const meanDelta = totalDelta / Math.max(1, keyPresets.length);
-    if (meanDelta > 55) {
-      renderEngineControl?.setValue("cpu", { silent: true });
-      renderer = cpuRenderer;
-      setStatus("GPU/CPU preset consistency check failed. Using CPU renderer.", "warn");
-    }
-  }
 
   const controlIds = [
     "scanlineStrength",
@@ -709,9 +592,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let loadedSourceType = "image";
   let loadedVideo = null;
   let loadedImage = null;
-  const builtInPresets = { ...FALLBACK_PRESETS };
-  let userPresets = {};
-  let presets = { ...builtInPresets };
+  const presets = { ...FALLBACK_PRESETS };
   let start = performance.now();
   let previewFrameSeconds = 0;
   let previewTargetSeconds = 0;
@@ -721,12 +602,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let activeExportController = null;
   let isExporting = false;
   let previewDirty = true;
-  let batchDefaultModeControl;
-  let batchQueue = [];
-  let batchJob = null;
-  const exportRendererProxy = {
-    render: (...args) => renderWithFallback(...args),
-  };
 
   function setupRangeWithNumber(id) {
     const slider = document.getElementById(id);
@@ -833,146 +708,16 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   function setExportAvailability() {
-    const hasBatchItems = batchQueue.length > 0;
-    const isBatchRunning = !!batchJob;
-    exportBtn.disabled = !hasLoadedSource || isExporting || isBatchRunning;
-    downloadStillBtn.disabled = !hasLoadedSource || isExporting || isBatchRunning;
-    saveProjectBtn.disabled = isExporting || isBatchRunning;
-    loadProjectBtn.disabled = isExporting || isBatchRunning;
-    copyShareLinkBtn.disabled = isExporting || isBatchRunning;
+    exportBtn.disabled = !hasLoadedSource || isExporting;
     cancelExportBtn.disabled = !isExporting;
-    resetSourceBtn.disabled = isExporting || isBatchRunning;
-    resetParamsBtn.disabled = isExporting || isBatchRunning;
-    imageInput.disabled = isExporting || isBatchRunning;
-    document.getElementById("fps").disabled = isExporting || isBatchRunning;
-    document.getElementById("duration").disabled = isExporting || isBatchRunning;
-    document.getElementById("exportQuality").disabled = isExporting || isBatchRunning;
-    document.getElementById("stillFormat").disabled = isExporting || isBatchRunning;
-    document.getElementById("stillJpegQuality").disabled = isExporting || isBatchRunning || document.getElementById("stillFormat").value !== "jpeg";
-    batchInput.disabled = isBatchRunning;
-    addBatchBtn.disabled = isBatchRunning;
-    clearBatchBtn.disabled = isBatchRunning || !hasBatchItems;
-    runBatchBtn.disabled = isBatchRunning || hasBatchItems === false;
-    cancelBatchBtn.disabled = !isBatchRunning;
-    batchSkipOnErrorEl.disabled = isBatchRunning;
-    exportFormatControl?.setDisabled(isExporting || isBatchRunning);
-    batchDefaultModeControl?.setDisabled(isBatchRunning);
+    resetSourceBtn.disabled = isExporting;
+    resetParamsBtn.disabled = isExporting;
+    imageInput.disabled = isExporting;
+    document.getElementById("fps").disabled = isExporting;
+    document.getElementById("duration").disabled = isExporting;
+    document.getElementById("exportQuality").disabled = isExporting;
+    exportFormatControl?.setDisabled(isExporting);
     updateExportControlsState();
-  }
-
-  function getBatchSettings() {
-    return {
-      defaultMode: batchDefaultModeControl?.getValue() === "still" ? "still" : "video",
-      skipOnError: !!batchSkipOnErrorEl.checked,
-    };
-  }
-
-  function saveBatchSettings() {
-    try {
-      localStorage.setItem(BATCH_SETTINGS_STORAGE_KEY, JSON.stringify(getBatchSettings()));
-    } catch (error) {
-      console.warn("Couldn't save batch settings", error);
-    }
-  }
-
-  function loadBatchSettings() {
-    try {
-      const raw = localStorage.getItem(BATCH_SETTINGS_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed?.defaultMode === "still" || parsed?.defaultMode === "video") {
-        batchDefaultModeControl?.setValue(parsed.defaultMode, { silent: true });
-      }
-      if (typeof parsed?.skipOnError === "boolean") {
-        batchSkipOnErrorEl.checked = parsed.skipOnError;
-      }
-    } catch (error) {
-      console.warn("Couldn't load batch settings", error);
-    }
-  }
-
-  function sanitizeFilename(value) {
-    return String(value || "export").trim().replace(/[\/:*?"<>|]+/g, "-").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "export";
-  }
-
-  function getBatchItemMode(item) {
-    return item?.overrides?.mode || getBatchSettings().defaultMode;
-  }
-
-  function updateBatchOverallProgress() {
-    if (!batchQueue.length) {
-      batchOverallProgressEl.value = 0;
-      return;
-    }
-    const sum = batchQueue.reduce((acc, item) => acc + (Number(item.progress) || 0), 0);
-    batchOverallProgressEl.value = Math.max(0, Math.min(1, sum / batchQueue.length));
-  }
-
-  function renderBatchQueue() {
-    if (!batchQueue.length) {
-      batchQueueList.innerHTML = '<div class="batch-empty">No queued files yet.</div>';
-      updateBatchOverallProgress();
-      setExportAvailability();
-      return;
-    }
-
-    const isBatchRunning = !!batchJob;
-    batchQueueList.innerHTML = "";
-
-    batchQueue.forEach((item, index) => {
-      const card = document.createElement("div");
-      card.className = "batch-item";
-      const modeValue = getBatchItemMode(item);
-      const modeLabel = modeValue === "still" ? "Single frame" : "Loop video";
-      card.innerHTML = `
-        <div class="batch-item-header">
-          <div class="batch-item-title" title="${item.file.name}">${index + 1}. ${item.file.name}</div>
-          <div class="batch-item-status">${item.status}${item.error ? ` · ${item.error}` : ""}</div>
-        </div>
-        <div class="batch-item-row">
-          <input data-action="name" value="${item.targetName}" ${isBatchRunning ? "disabled" : ""} />
-          <select data-action="mode" ${isBatchRunning ? "disabled" : ""}>
-            <option value="video" ${modeValue === "video" ? "selected" : ""}>${modeLabel === "Loop video" ? "Loop video" : "Loop video (override)"}</option>
-            <option value="still" ${modeValue === "still" ? "selected" : ""}>Single frame</option>
-          </select>
-          <button data-action="up" ${isBatchRunning || index === 0 ? "disabled" : ""}>↑</button>
-          <button data-action="down" ${isBatchRunning || index === batchQueue.length - 1 ? "disabled" : ""}>↓</button>
-        </div>
-        <div class="batch-item-row">
-          <progress max="1" value="${Math.max(0, Math.min(1, item.progress || 0))}"></progress>
-          <button data-action="remove" ${isBatchRunning ? "disabled" : ""}>Remove</button>
-        </div>
-      `;
-
-      card.querySelector('[data-action="name"]').addEventListener("input", (event) => {
-        item.targetName = sanitizeFilename(event.target.value);
-      });
-      card.querySelector('[data-action="mode"]').addEventListener("change", (event) => {
-        const next = event.target.value === "still" ? "still" : "video";
-        item.overrides = { ...(item.overrides || {}), mode: next };
-        saveBatchSettings();
-      });
-      card.querySelector('[data-action="up"]').addEventListener("click", () => {
-        if (index <= 0) return;
-        const [moved] = batchQueue.splice(index, 1);
-        batchQueue.splice(index - 1, 0, moved);
-        renderBatchQueue();
-      });
-      card.querySelector('[data-action="down"]').addEventListener("click", () => {
-        if (index >= batchQueue.length - 1) return;
-        const [moved] = batchQueue.splice(index, 1);
-        batchQueue.splice(index + 1, 0, moved);
-        renderBatchQueue();
-      });
-      card.querySelector('[data-action="remove"]').addEventListener("click", () => {
-        batchQueue.splice(index, 1);
-        renderBatchQueue();
-      });
-      batchQueueList.appendChild(card);
-    });
-
-    updateBatchOverallProgress();
-    setExportAvailability();
   }
 
   let previewModeControl;
@@ -1020,12 +765,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function refreshRendererSource() {
     if (loadedSourceType === "video" && loadedVideo?.video) {
-      setSourceForAllRenderers(loadedVideo.video, getSourceScale());
+      renderer.setImage(loadedVideo.video, getSourceScale());
       markPreviewDirty();
       return;
     }
     if (loadedSourceType === "image" && loadedImage) {
-      setSourceForAllRenderers(loadedImage, getSourceScale());
+      renderer.setImage(loadedImage, getSourceScale());
       markPreviewDirty();
     }
   }
@@ -1143,377 +888,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     return Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
   }
 
-  function getNumericInputBounds(id, fallbackMin = -Infinity, fallbackMax = Infinity) {
-    const input = document.getElementById(id);
-    if (!input) return { min: fallbackMin, max: fallbackMax };
-    const min = Number(input.min);
-    const max = Number(input.max);
-    return {
-      min: Number.isFinite(min) ? min : fallbackMin,
-      max: Number.isFinite(max) ? max : fallbackMax,
-    };
-  }
-
-  function clampNumber(value, min, max) {
-    if (!Number.isFinite(value)) return null;
-    return Math.min(max, Math.max(min, value));
-  }
-
-  function encodeStateForUrl(state) {
-    return btoa(encodeURIComponent(JSON.stringify(state)));
-  }
-
-  function decodeStateFromUrl(encoded) {
-    return JSON.parse(decodeURIComponent(atob(encoded)));
-  }
-
-  function createProjectModel({ compact = false } = {}) {
-    const exportFormat = exportFormatControl?.getValue() || "mp4";
-    return {
-      version: 1,
-      activePresetName: presetControl?.getValue() || "custom",
-      sliders: readParams(),
-      preview: {
-        mode: previewModeControl?.getValue() || "still",
-        scale: getPreviewScale(),
-        sourceScale: getSourceScale(),
-        quality: getPreviewMaxPixels(),
-        timestamp: Number(previewTargetSeconds || previewFrameSeconds || 0),
-      },
-      export: {
-        fps: Number(document.getElementById("fps").value),
-        duration: Number(document.getElementById("duration").value),
-        format: exportFormat,
-        quality: Number(document.getElementById("exportQuality").value),
-        includeAudio: exportFormat === "webm" ? document.getElementById("includeOriginalAudio").checked : false,
-      },
-      ...(compact ? {} : { savedAt: new Date().toISOString() }),
-    };
-  }
-
-  function applyProjectState(model, { fromUrl = false } = {}) {
-    const warnings = [];
-    if (!model || typeof model !== "object" || Array.isArray(model)) {
-      throw new Error("Project data must be a JSON object.");
-    }
-
-    const allowedTopLevel = new Set(["version", "activePresetName", "sliders", "preview", "export", "savedAt"]);
-    for (const key of Object.keys(model)) {
-      if (!allowedTopLevel.has(key)) {
-        warnings.push(`Unknown top-level field "${key}" was ignored.`);
-      }
-    }
-
-    const sliderSource = model.sliders && typeof model.sliders === "object" ? model.sliders : null;
-    if (!sliderSource) {
-      warnings.push("Missing sliders object; current slider values were kept.");
-    }
-
-    if (sliderSource) {
-      for (const id of controlIds) {
-        if (!(id in sliderSource)) {
-          warnings.push(`Missing slider field "${id}"; kept current value.`);
-          continue;
-        }
-        const slider = document.getElementById(id);
-        const rawValue = Number(sliderSource[id]);
-        const { min, max } = getNumericInputBounds(id, -Infinity, Infinity);
-        const clamped = clampNumber(rawValue, min, max);
-        if (clamped === null) {
-          warnings.push(`Invalid slider value for "${id}"; kept current value.`);
-          continue;
-        }
-        if (clamped !== rawValue) {
-          warnings.push(`Slider "${id}" was out of range and was clamped.`);
-        }
-        slider.value = String(clamped);
-        slider.__syncRangeNumber?.();
-      }
-    }
-
-    const presetName = typeof model.activePresetName === "string" ? model.activePresetName : null;
-    if (!presetName) {
-      warnings.push("Missing activePresetName; preset selection unchanged.");
-    } else if (presets[presetName]) {
-      presetControl?.setValue(presetName, { silent: true });
-    } else {
-      warnings.push(`Unknown preset "${presetName}"; using current preset selection.`);
-    }
-
-    const preview = model.preview && typeof model.preview === "object" ? model.preview : null;
-    if (!preview) {
-      warnings.push("Missing preview object; preview controls unchanged.");
-    } else {
-      const mode = typeof preview.mode === "string" ? preview.mode : null;
-      if (mode === "still" || mode === "playback") {
-        previewModeControl?.setValue(mode, { silent: true });
-      } else {
-        warnings.push("Invalid or missing preview.mode; expected still or playback.");
-      }
-
-      const previewScaleOptions = [1, 0.75, 0.5, 0.33];
-      const previewScaleValue = clampNumber(Number(preview.scale), 0.1, 1);
-      if (previewScaleValue !== null) {
-        const nearest = previewScaleOptions.reduce((best, option) =>
-          Math.abs(option - previewScaleValue) < Math.abs(best - previewScaleValue) ? option : best,
-        previewScaleOptions[0]);
-        if (nearest !== previewScaleValue) warnings.push("preview.scale was mapped to nearest supported option.");
-        previewScaleControl?.setValue(String(nearest), { silent: true });
-      } else {
-        warnings.push("Invalid or missing preview.scale; preview scale unchanged.");
-      }
-
-      const sourceScaleOptions = [1, 0.75, 0.5, 0.33, 0.25];
-      const sourceScaleValue = clampNumber(Number(preview.sourceScale), 0.1, 1);
-      if (sourceScaleValue !== null) {
-        const nearest = sourceScaleOptions.reduce((best, option) =>
-          Math.abs(option - sourceScaleValue) < Math.abs(best - sourceScaleValue) ? option : best,
-        sourceScaleOptions[0]);
-        if (nearest !== sourceScaleValue) warnings.push("preview.sourceScale was mapped to nearest supported option.");
-        sourceScaleControl?.setValue(String(nearest), { silent: true });
-      } else {
-        warnings.push("Invalid or missing preview.sourceScale; source scale unchanged.");
-      }
-
-      const qualityOptions = [307200, 921600, 2073600, 0];
-      const qualityValue = clampNumber(Number(preview.quality), 0, 10_000_000);
-      if (qualityValue !== null) {
-        const nearest = qualityOptions.reduce((best, option) =>
-          Math.abs(option - qualityValue) < Math.abs(best - qualityValue) ? option : best,
-        qualityOptions[0]);
-        if (nearest !== qualityValue) warnings.push("preview.quality was mapped to nearest supported option.");
-        previewMaxPixelsControl?.setValue(String(nearest), { silent: true });
-      } else {
-        warnings.push("Invalid or missing preview.quality; preview quality unchanged.");
-      }
-
-      const previewTime = document.getElementById("previewTime");
-      const maxPreviewTime = Number(previewTime.max) || 0;
-      const timestampValue = clampNumber(Number(preview.timestamp), 0, maxPreviewTime);
-      if (timestampValue !== null) {
-        previewTargetSeconds = timestampValue;
-        previewFrameSeconds = timestampValue;
-        previewTime.value = timestampValue.toFixed(3);
-        previewTime.__syncRangeNumber?.();
-        previewNeedsSeek = loadedSourceType === "video";
-      } else {
-        warnings.push("Invalid or missing preview.timestamp; preview time unchanged.");
-      }
-    }
-
-    const exportState = model.export && typeof model.export === "object" ? model.export : null;
-    if (!exportState) {
-      warnings.push("Missing export object; export controls unchanged.");
-    } else {
-      const fpsBounds = getNumericInputBounds("fps", 1, 120);
-      const fpsValue = clampNumber(Number(exportState.fps), fpsBounds.min, fpsBounds.max);
-      if (fpsValue !== null) {
-        document.getElementById("fps").value = String(fpsValue);
-      } else {
-        warnings.push("Invalid or missing export.fps; FPS unchanged.");
-      }
-
-      const durationBounds = getNumericInputBounds("duration", 0.1, 60);
-      const durationValue = clampNumber(Number(exportState.duration), durationBounds.min, durationBounds.max);
-      if (durationValue !== null) {
-        document.getElementById("duration").value = String(durationValue);
-      } else {
-        warnings.push("Invalid or missing export.duration; duration unchanged.");
-      }
-
-      const exportQualityBounds = getNumericInputBounds("exportQuality", 0.5, 2.5);
-      const exportQualityValue = clampNumber(Number(exportState.quality), exportQualityBounds.min, exportQualityBounds.max);
-      if (exportQualityValue !== null) {
-        document.getElementById("exportQuality").value = String(exportQualityValue);
-      } else {
-        warnings.push("Invalid or missing export.quality; quality unchanged.");
-      }
-
-      const exportFormat = typeof exportState.format === "string" ? exportState.format : null;
-      if (exportFormat === "mp4" || exportFormat === "webm") {
-        exportFormatControl?.setValue(exportFormat, { silent: true });
-      } else {
-        warnings.push("Invalid or missing export.format; format unchanged.");
-      }
-
-      if (typeof exportState.includeAudio === "boolean") {
-        document.getElementById("includeOriginalAudio").checked = exportState.includeAudio;
-      } else {
-        warnings.push("Missing export.includeAudio; include-audio toggle unchanged.");
-      }
-    }
-
-    refreshRendererSource();
-    updatePreviewControlsState();
-    updateExportControlsState();
-    syncVideoPlaybackState();
-    markPreviewDirty();
-    progressEl.value = 0;
-
-    if (warnings.length > 0) {
-      setStatus(`${fromUrl ? "Link" : "Project"} loaded with warnings: ${warnings[0]}`, "warn");
-      console.warn("State load warnings:", warnings);
-    } else {
-      setStatus(`${fromUrl ? "Link" : "Project"} loaded successfully.`, "success");
-    }
-  }
-
-  function tryHydrateFromUrl() {
-    const url = new URL(window.location.href);
-    const encoded = url.searchParams.get("state") || (url.hash.startsWith("#state=") ? url.hash.slice(7) : "");
-    if (!encoded) return false;
-    try {
-      const parsed = decodeStateFromUrl(encoded);
-      applyProjectState(parsed, { fromUrl: true });
-      return true;
-    } catch (error) {
-      setStatus(`Couldn't load state from URL: ${error.message}`, "warn");
-      console.warn("URL state decode failed", error);
-      return true;
-    }
-  }
-
-  function getSafePresetName() {
-    const presetName = presetControl?.getValue() || "custom";
-    return String(presetName).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "custom";
-  }
-
-  async function renderCurrentPreviewFrameToCanvas(targetCtx, width, height, { secondsOverride } = {}) {
-    const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
-    const params = readParams();
-    const stillMode = isStillPreviewMode();
-
-    let frameSeconds = Number.isFinite(secondsOverride) ? Math.max(0, secondsOverride) : 0;
-    if (loadedSourceType === "video" && loadedVideo?.video) {
-      const video = loadedVideo.video;
-      frameSeconds = stillMode ? previewTargetSeconds : video.currentTime;
-      await seekVideo(video, frameSeconds);
-      setSourceForAllRenderers(video, getSourceScale());
-    } else if (loadedImage) {
-      setSourceForAllRenderers(loadedImage, getSourceScale());
-    }
-
-    const frameIndex = Math.max(0, Math.floor(frameSeconds * fps));
-    renderWithFallback(targetCtx, width, height, frameSeconds, params, frameIndex, fps);
-
-    if (targetCtx === ctx) {
-      previewFrameSeconds = frameSeconds;
-      if (loadedSourceType === "video" && stillMode) {
-        previewTargetSeconds = frameSeconds;
-        const previewTime = document.getElementById("previewTime");
-        previewTime.value = frameSeconds.toFixed(3);
-        previewTime.__syncRangeNumber?.();
-      }
-      previewDirty = false;
-    }
-
-    return frameSeconds;
-  }
-
-  function isBuiltInPreset(name) {
-    return Object.prototype.hasOwnProperty.call(builtInPresets, name);
-  }
-
-  function normalizePresetValues(rawValues) {
-    const normalized = {};
-    for (const id of controlIds) {
-      const { min, max } = getNumericInputBounds(id, -Infinity, Infinity);
-      const value = clampNumber(Number(rawValues?.[id]), min, max);
-      if (value !== null) {
-        normalized[id] = value;
-      }
-    }
-    return normalized;
-  }
-
-  function rebuildPresetMap() {
-    presets = { ...builtInPresets, ...userPresets };
-  }
-
-  function getUserPresetsDocument() {
-    return {
-      schemaVersion: USER_PRESETS_SCHEMA_VERSION,
-      presets: { ...userPresets },
-    };
-  }
-
-  function migrateUserPresetsDocument(raw) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: {} };
-    }
-
-    const version = Number(raw.schemaVersion);
-    if (!Number.isFinite(version)) {
-      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: raw };
-    }
-
-    if (version > USER_PRESETS_SCHEMA_VERSION) {
-      throw new Error(`Unsupported presets schema version ${version}.`);
-    }
-
-    if (version === 1) {
-      const sourcePresets = raw.presets && typeof raw.presets === "object" && !Array.isArray(raw.presets) ? raw.presets : {};
-      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: sourcePresets };
-    }
-
-    return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: {} };
-  }
-
-  function sanitizeUserPresetsMap(rawPresets) {
-    const next = {};
-    if (!rawPresets || typeof rawPresets !== "object" || Array.isArray(rawPresets)) {
-      return next;
-    }
-
-    for (const [name, value] of Object.entries(rawPresets)) {
-      const cleanName = String(name || "").trim();
-      if (!cleanName || isBuiltInPreset(cleanName)) continue;
-      const normalized = normalizePresetValues(value);
-      if (Object.keys(normalized).length > 0) {
-        next[cleanName] = normalized;
-      }
-    }
-    return next;
-  }
-
-  function saveUserPresetsToStorage() {
-    try {
-      localStorage.setItem(USER_PRESETS_STORAGE_KEY, JSON.stringify(getUserPresetsDocument()));
-    } catch (error) {
-      console.warn("Failed to persist user presets", error);
-    }
-  }
-
-  function loadUserPresetsFromStorage() {
-    const raw = localStorage.getItem(USER_PRESETS_STORAGE_KEY);
-    if (!raw) {
-      userPresets = {};
-      rebuildPresetMap();
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      const migrated = migrateUserPresetsDocument(parsed);
-      userPresets = sanitizeUserPresetsMap(migrated.presets);
-      rebuildPresetMap();
-      if (migrated.schemaVersion !== USER_PRESETS_SCHEMA_VERSION || JSON.stringify(migrated.presets) !== JSON.stringify(userPresets)) {
-        saveUserPresetsToStorage();
-      }
-    } catch (error) {
-      console.warn("Failed to load user presets from storage", error);
-      userPresets = {};
-      rebuildPresetMap();
-    }
-  }
-
-  function updatePresetActionButtons() {
-    const activeName = presetControl?.getValue();
-    const editable = !!activeName && !isBuiltInPreset(activeName);
-    if (renamePresetBtn) renamePresetBtn.disabled = !editable;
-    if (deletePresetBtn) deletePresetBtn.disabled = !editable;
-  }
-
   function applyPreset(name) {
     const values = presets[name];
     if (!values) return;
@@ -1526,76 +900,41 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
   }
 
-  function createPresetGroup(title, names, selectedName) {
-    const group = document.createElement("div");
-    group.className = "preset-group";
-
-    const heading = document.createElement("div");
-    heading.className = "preset-group-title";
-    heading.textContent = title;
-    group.appendChild(heading);
+  function initializePresets() {
+    const names = Object.keys(presets);
+    presetSelect.innerHTML = "";
 
     if (names.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "selection-empty";
-      empty.textContent = "None";
-      group.appendChild(empty);
-      return group;
+      const message = document.createElement("div");
+      message.className = "selection-empty";
+      message.textContent = "No presets available";
+      presetSelect.appendChild(message);
+      return;
     }
 
-    const options = document.createElement("div");
-    options.className = "selection-box selection-box-wrap";
     for (const name of names) {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.value = name;
       button.textContent = name;
-      button.dataset.presetOrigin = isBuiltInPreset(name) ? "builtin" : "user";
-      if (selectedName === name) button.dataset.selected = "true";
-      options.appendChild(button);
+      if (name === "Consumer TV") {
+        button.dataset.selected = "true";
+      }
+      presetSelect.appendChild(button);
     }
-    group.appendChild(options);
-    return group;
-  }
-
-  function initializePresets({ preferredName, silentApply = false } = {}) {
-    const builtInNames = Object.keys(builtInPresets);
-    const userNames = Object.keys(userPresets);
-    const allNames = [...builtInNames, ...userNames];
-    presetSelect.innerHTML = "";
-
-    if (allNames.length === 0) {
-      const message = document.createElement("div");
-      message.className = "selection-empty";
-      message.textContent = "No presets available";
-      presetSelect.appendChild(message);
-      updatePresetActionButtons();
-      return;
-    }
-
-    const currentSelection = preferredName || presetControl?.getValue();
-    const defaultPreset = builtInPresets["Consumer TV"] ? "Consumer TV" : allNames[0];
-    const selectedName = allNames.includes(currentSelection) ? currentSelection : defaultPreset;
-
-    presetSelect.appendChild(createPresetGroup("Built-in presets (read-only)", builtInNames, selectedName));
-    presetSelect.appendChild(createPresetGroup("Your presets", userNames, selectedName));
 
     presetControl = setupSelectionBox("presetSelect", {
       onChange: (name) => {
         applyPreset(name);
         markPreviewDirty();
         progressEl.value = 0;
-        updatePresetActionButtons();
         setStatus(`Preset applied: ${name}`, "success");
       },
     });
 
-    presetControl.setValue(selectedName, { silent: true });
-    applyPreset(selectedName);
-    updatePresetActionButtons();
-    if (!silentApply) {
-      markPreviewDirty();
-    }
+    const defaultPreset = presets["Consumer TV"] ? "Consumer TV" : names[0];
+    presetControl.setValue(defaultPreset, { silent: true });
+    applyPreset(defaultPreset);
   }
 
   async function loadImageFromFile(file) {
@@ -1652,190 +991,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     await waitForVideoEvent(video, "seeked");
   }
 
-  async function exportStillBlob({ outputName, frameSeconds = 0, signal }) {
-    if (signal?.aborted) {
-      throw new DOMException("The operation was aborted.", "AbortError");
-    }
-    renderWithFallback(ctx, canvas.width, canvas.height, frameSeconds, readParams(), Math.max(0, Math.floor(frameSeconds * (Number(document.getElementById("fps").value) || 30))), Number(document.getElementById("fps").value) || 30);
-    const stillFormat = document.getElementById("stillFormat").value === "jpeg" ? "jpeg" : "png";
-    const mimeType = stillFormat === "jpeg" ? "image/jpeg" : "image/png";
-    const jpegQualityRaw = Number(document.getElementById("stillJpegQuality").value);
-    const jpegQuality = Math.max(0.1, Math.min(1, Number.isFinite(jpegQualityRaw) ? jpegQualityRaw : 0.92));
-    const extension = stillFormat === "jpeg" ? "jpg" : "png";
-
-    const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob((nextBlob) => {
-        if (!nextBlob) {
-          reject(new Error("Canvas export returned an empty blob."));
-          return;
-        }
-        resolve(nextBlob);
-      }, mimeType, stillFormat === "jpeg" ? jpegQuality : undefined);
-    });
-
-    downloadBlob(blob, `${sanitizeFilename(outputName)}.${extension}`);
-    return blob;
-  }
-
-  function cleanupBatchSource(source) {
-    if (!source) return;
-    if (source.type === "video" && source.videoRef?.video) {
-      source.videoRef.video.pause();
-      source.videoRef.video.removeAttribute("src");
-      source.videoRef.video.load();
-    }
-    if (source.videoRef?.objectUrl) {
-      URL.revokeObjectURL(source.videoRef.objectUrl);
-    }
-    if (source.type === "image" && source.imageRef && typeof source.imageRef.close === "function") {
-      source.imageRef.close();
-    }
-  }
-
-  async function runBatchQueue() {
-    if (!batchQueue.length || batchJob) return;
-
-    const previousSource = { loadedVideo, loadedImage, loadedSourceType, hasLoadedSource, canvasWidth: canvas.width, canvasHeight: canvas.height };
-    const controller = new AbortController();
-    batchJob = { controller };
-    for (const item of batchQueue) {
-      item.status = "Queued";
-      item.progress = 0;
-      item.error = "";
-    }
-    renderBatchQueue();
-    setStatus(`Starting batch export (${batchQueue.length} items)...`, "info");
-
-    const skipOnError = !!batchSkipOnErrorEl.checked;
-    const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
-    const duration = Math.max(0.5, Number(document.getElementById("duration").value) || 4);
-    const qualityMultiplier = Math.max(0.5, Math.min(2.5, Number(document.getElementById("exportQuality").value) || 1));
-    const includeOriginalAudio = document.getElementById("includeOriginalAudio").checked;
-    const selectedFormat = exportFormatControl?.getValue() || "mp4";
-
-    try {
-      for (let index = 0; index < batchQueue.length; index++) {
-        const item = batchQueue[index];
-        if (controller.signal.aborted) {
-          throw new DOMException("Batch cancelled", "AbortError");
-        }
-        item.status = "Processing";
-        item.progress = 0;
-        renderBatchQueue();
-
-        let source = null;
-        try {
-          const isVideoFile = item.file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(item.file.name);
-          if (isVideoFile) {
-            const videoRef = await loadVideoFromFile(item.file);
-            source = { type: "video", videoRef };
-            loadedVideo = videoRef;
-            loadedImage = null;
-            loadedSourceType = "video";
-            hasLoadedSource = true;
-            canvas.width = videoRef.video.videoWidth;
-            canvas.height = videoRef.video.videoHeight;
-            await seekVideo(videoRef.video, 0);
-            setSourceForAllRenderers(videoRef.video, getSourceScale());
-          } else {
-            const imageRef = await loadImageFromFile(item.file);
-            source = { type: "image", imageRef };
-            loadedImage = imageRef;
-            loadedVideo = null;
-            loadedSourceType = "image";
-            hasLoadedSource = true;
-            canvas.width = imageRef.naturalWidth || imageRef.width;
-            canvas.height = imageRef.naturalHeight || imageRef.height;
-            setSourceForAllRenderers(imageRef, getSourceScale());
-          }
-
-          const mode = getBatchItemMode(item);
-          const safeOutputName = sanitizeFilename(item.targetName || item.file.name.replace(/\.[^.]+$/, ""));
-          const isStillMode = mode === "still" && source.type === "image";
-
-          if (isStillMode) {
-            await exportStillBlob({ outputName: safeOutputName, frameSeconds: 0, signal: controller.signal });
-            item.progress = 1;
-          } else if (selectedFormat === "webm" || (includeOriginalAudio && source.type === "video")) {
-            await exportWebmRealtime({
-              canvas,
-              renderer: exportRendererProxy,
-              params: readParams(),
-              fps,
-              duration,
-              loadedSourceType,
-              loadedVideo,
-              loadedImage,
-              sourceScale: getSourceScale,
-              includeAudio: includeOriginalAudio && source.type === "video",
-              onProgress: (value) => {
-                item.progress = value;
-                updateBatchOverallProgress();
-              },
-              signal: controller.signal,
-              outputName: safeOutputName,
-            });
-          } else {
-            await exportMp4({
-              canvas,
-              renderer: exportRendererProxy,
-              params: readParams(),
-              fps,
-              duration,
-              beforeRenderFrame: source.type === "video"
-                ? async (t) => {
-                    await seekVideo(source.videoRef.video, t);
-                    setSourceForAllRenderers(source.videoRef.video, getSourceScale());
-                  }
-                : null,
-              onProgress: (value) => {
-                item.progress = value;
-                updateBatchOverallProgress();
-              },
-              signal: controller.signal,
-              bitrateScale: qualityMultiplier,
-              outputName: safeOutputName,
-            });
-          }
-
-          item.status = "Done";
-          item.progress = 1;
-        } catch (error) {
-          item.status = error?.name === "AbortError" ? "Cancelled" : "Failed";
-          item.error = error?.message || "Unknown error";
-          if (!skipOnError && error?.name !== "AbortError") {
-            throw error;
-          }
-          if (error?.name === "AbortError") {
-            throw error;
-          }
-        } finally {
-          cleanupBatchSource(source);
-          renderBatchQueue();
-        }
-      }
-      setStatus("Batch export finished.", "success");
-    } catch (error) {
-      if (error?.name === "AbortError") {
-        setStatus("Batch export cancelled.", "warn");
-      } else {
-        setStatus(`Batch export failed: ${error.message}`, "error");
-      }
-    } finally {
-      loadedVideo = previousSource.loadedVideo;
-      loadedImage = previousSource.loadedImage;
-      loadedSourceType = previousSource.loadedSourceType;
-      hasLoadedSource = previousSource.hasLoadedSource;
-      canvas.width = previousSource.canvasWidth;
-      canvas.height = previousSource.canvasHeight;
-      refreshRendererSource();
-      markPreviewDirty();
-      batchJob = null;
-      renderBatchQueue();
-      setExportAvailability();
-    }
-  }
-
   function animate(now) {
     const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
     const elapsed = (now - start) / 1000;
@@ -1851,7 +1006,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           seekVideo(video, previewTargetSeconds)
             .then(() => {
               previewFrameSeconds = previewTargetSeconds;
-              setSourceForAllRenderers(video, getSourceScale());
+              renderer.setImage(video, getSourceScale());
               markPreviewDirty();
             })
             .catch((error) => {
@@ -1864,7 +1019,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         const minInterval = 1000 / previewFps;
         if (now - lastPreviewTick >= minInterval) {
           lastPreviewTick = now;
-          setSourceForAllRenderers(video, getSourceScale());
+          renderer.setImage(video, getSourceScale());
           previewFrameSeconds = video.currentTime;
           markPreviewDirty();
           previewTargetSeconds = previewFrameSeconds;
@@ -1878,30 +1033,20 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (shouldRender) {
       const { width: previewWidth, height: previewHeight } = getPreviewRenderSize();
       if (previewWidth === canvas.width && previewHeight === canvas.height) {
-        renderCurrentPreviewFrameToCanvas(ctx, canvas.width, canvas.height, { secondsOverride: frame / fps }).catch((error) => {
-          console.warn("Preview render failed", error);
-        });
+        renderer.render(ctx, canvas.width, canvas.height, frame / fps, readParams(), frame, fps);
       } else {
         previewBuffer.width = previewWidth;
         previewBuffer.height = previewHeight;
         const previewCtx = previewBuffer.getContext("2d", { alpha: false, desynchronized: true });
-        renderCurrentPreviewFrameToCanvas(previewCtx, previewBuffer.width, previewBuffer.height, { secondsOverride: frame / fps })
-          .then(() => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-            ctx.drawImage(previewBuffer, 0, 0, canvas.width, canvas.height);
-            previewDirty = false;
-          })
-          .catch((error) => {
-            console.warn("Preview render failed", error);
-          });
+        renderer.render(previewCtx, previewBuffer.width, previewBuffer.height, frame / fps, readParams(), frame, fps);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(previewBuffer, 0, 0, canvas.width, canvas.height);
       }
-      if (previewWidth === canvas.width && previewHeight === canvas.height) {
-        previewDirty = false;
-      }
+      previewDirty = false;
     }
     requestAnimationFrame(animate);
   }
@@ -1920,7 +1065,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       if (file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name)) {
         const videoSource = await loadVideoFromFile(file);
         progressEl.value = 0.4;
-        setSourceForAllRenderers(videoSource.video, getSourceScale());
+        renderer.setImage(videoSource.video, getSourceScale());
         loadedVideo = videoSource;
         loadedSourceType = "video";
 
@@ -1940,7 +1085,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         const imageSource = await loadImageFromFile(file);
         progressEl.value = 0.4;
         loadedImage = imageSource;
-        setSourceForAllRenderers(imageSource, getSourceScale());
+        renderer.setImage(imageSource, getSourceScale());
         loadedSourceType = "image";
         previewTargetSeconds = 0;
         previewFrameSeconds = 0;
@@ -1953,7 +1098,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
       progressEl.value = 1;
       hasLoadedSource = true;
-      await runConsistencyCheck();
       setExportAvailability();
       start = performance.now();
     } catch (error) {
@@ -1965,55 +1109,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
   });
 
-
-  addBatchBtn?.addEventListener("click", () => {
-    const files = Array.from(batchInput.files || []);
-    if (!files.length) {
-      setStatus("Select one or more files for the batch queue.", "warn");
-      return;
-    }
-
-    for (const file of files) {
-      const baseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, ""));
-      batchQueue.push({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        file,
-        metadata: {
-          name: file.name,
-          size: file.size,
-          type: file.type || "application/octet-stream",
-          lastModified: file.lastModified,
-        },
-        targetName: baseName,
-        overrides: {},
-        status: "Queued",
-        progress: 0,
-        error: "",
-      });
-    }
-    batchInput.value = "";
-    renderBatchQueue();
-    setStatus(`Added ${files.length} file(s) to batch queue.`, "success");
-  });
-
-  clearBatchBtn?.addEventListener("click", () => {
-    batchQueue = [];
-    renderBatchQueue();
-    setStatus("Batch queue cleared.", "info");
-  });
-
-  runBatchBtn?.addEventListener("click", () => {
-    runBatchQueue();
-  });
-
-  cancelBatchBtn?.addEventListener("click", () => {
-    if (!batchJob?.controller) return;
-    batchJob.controller.abort();
-    setStatus("Cancelling batch export...", "warn");
-  });
-
-  batchSkipOnErrorEl?.addEventListener("change", saveBatchSettings);
-
   document.getElementById("previewFps").addEventListener("input", () => {
     markPreviewDirty();
     progressEl.value = 0;
@@ -2024,53 +1119,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     previewNeedsSeek = true;
     markPreviewDirty();
     progressEl.value = 0;
-  });
-
-  document.getElementById("stillFormat").addEventListener("change", () => {
-    setExportAvailability();
-  });
-
-  downloadStillBtn.addEventListener("click", async () => {
-    if (!hasLoadedSource) {
-      setStatus("Load an image or video before exporting a still.", "warn");
-      return;
-    }
-
-    try {
-      isExporting = true;
-      setExportAvailability();
-      progressEl.value = 0;
-      setStatus("Rendering still frame...", "info");
-
-      const frameSeconds = await renderCurrentPreviewFrameToCanvas(ctx, canvas.width, canvas.height);
-      const stillFormat = document.getElementById("stillFormat").value === "jpeg" ? "jpeg" : "png";
-      const mimeType = stillFormat === "jpeg" ? "image/jpeg" : "image/png";
-      const jpegQualityRaw = Number(document.getElementById("stillJpegQuality").value);
-      const jpegQuality = Math.max(0.1, Math.min(1, Number.isFinite(jpegQualityRaw) ? jpegQualityRaw : 0.92));
-      const extension = stillFormat === "jpeg" ? "jpg" : "png";
-
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((nextBlob) => {
-          if (!nextBlob) {
-            reject(new Error("Canvas export returned an empty blob."));
-            return;
-          }
-          resolve(nextBlob);
-        }, mimeType, stillFormat === "jpeg" ? jpegQuality : undefined);
-      });
-
-      const timestamp = new Date().toISOString().replace(/[.:]/g, "-");
-      const filename = `crt-still-${getSafePresetName()}-${timestamp}.${extension}`;
-      downloadBlob(blob, filename);
-      progressEl.value = 1;
-      setStatus(`Still saved (${extension.toUpperCase()}) at ${frameSeconds.toFixed(3)}s.`, "success");
-    } catch (error) {
-      setStatus(`Still export failed: ${error.message}`, "error");
-      console.error(error);
-    } finally {
-      isExporting = false;
-      setExportAvailability();
-    }
   });
 
   exportBtn.addEventListener("click", async () => {
@@ -2096,50 +1144,44 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         setStatus("Audio passthrough requires WebM realtime export. Switching format for this render.", "warn");
       }
 
-      const canUseOffscreen = !(selectedFormat === "webm" || mustUseRealtimeAudio);
-      const renderTargetCanvas = getRenderTargetCanvas(canvas.width, canvas.height, { preferOffscreen: canUseOffscreen });
-      try {
-        if (selectedFormat === "webm" || mustUseRealtimeAudio) {
-          await exportWebmRealtime({
-            canvas: renderTargetCanvas,
-            renderer: exportRendererProxy,
-            params: readParams(),
-            fps,
-            duration,
-            loadedSourceType,
-            loadedVideo,
-            loadedImage,
-            sourceScale: getSourceScale,
-            includeAudio: includeOriginalAudio,
-            onProgress: (value, current, total) => {
-              progressEl.value = value;
-              setStatus(`Realtime export frame ${current}/${total}`, "info");
-            },
-            signal: activeExportController.signal,
-          });
-        } else {
-          await exportMp4({
-            canvas: renderTargetCanvas,
-            renderer: exportRendererProxy,
-            params: readParams(),
-            fps,
-            duration,
-            beforeRenderFrame: loadedSourceType === "video" && loadedVideo
-              ? async (t) => {
-                  await seekVideo(loadedVideo.video, t);
-                  setSourceForAllRenderers(loadedVideo.video, getSourceScale());
-                }
-              : null,
-            onProgress: (value, current, total) => {
-              progressEl.value = value;
-              setStatus(`Encoding frame ${current}/${total}`, "info");
-            },
-            signal: activeExportController.signal,
-            bitrateScale: qualityMultiplier,
-          });
-        }
-      } finally {
-        releaseRenderTargetCanvas(renderTargetCanvas);
+      if (selectedFormat === "webm" || mustUseRealtimeAudio) {
+        await exportWebmRealtime({
+          canvas,
+          renderer,
+          params: readParams(),
+          fps,
+          duration,
+          loadedSourceType,
+          loadedVideo,
+          loadedImage,
+          sourceScale: getSourceScale,
+          includeAudio: includeOriginalAudio,
+          onProgress: (value, current, total) => {
+            progressEl.value = value;
+            setStatus(`Realtime export frame ${current}/${total}`, "info");
+          },
+          signal: activeExportController.signal,
+        });
+      } else {
+        await exportMp4({
+          canvas,
+          renderer,
+          params: readParams(),
+          fps,
+          duration,
+          beforeRenderFrame: loadedSourceType === "video" && loadedVideo
+            ? async (t) => {
+                await seekVideo(loadedVideo.video, t);
+                renderer.setImage(loadedVideo.video, getSourceScale());
+              }
+            : null,
+          onProgress: (value, current, total) => {
+            progressEl.value = value;
+            setStatus(`Encoding frame ${current}/${total}`, "info");
+          },
+          signal: activeExportController.signal,
+          bitrateScale: qualityMultiplier,
+        });
       }
       setStatus("Export finished. Download should begin automatically.", "success");
     } catch (error) {
@@ -2162,151 +1204,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     setStatus("Cancelling export...", "warn");
   });
 
-  savePresetBtn?.addEventListener("click", () => {
-    const rawName = prompt("Preset name:");
-    if (rawName === null) return;
-    const name = rawName.trim();
-    if (!name) {
-      setStatus("Preset name cannot be empty.", "warn");
-      return;
-    }
-    if (isBuiltInPreset(name)) {
-      setStatus("Built-in preset names are reserved and read-only.", "warn");
-      return;
-    }
-    if (userPresets[name] && !confirm(`Overwrite user preset "${name}"?`)) {
-      return;
-    }
-
-    userPresets[name] = normalizePresetValues(readParams());
-    rebuildPresetMap();
-    saveUserPresetsToStorage();
-    initializePresets({ preferredName: name, silentApply: true });
-    setStatus(`Saved user preset: ${name}`, "success");
-  });
-
-  renamePresetBtn?.addEventListener("click", () => {
-    const current = presetControl?.getValue();
-    if (!current || isBuiltInPreset(current) || !userPresets[current]) {
-      setStatus("Only user presets can be renamed.", "warn");
-      return;
-    }
-
-    const rawName = prompt("New preset name:", current);
-    if (rawName === null) return;
-    const name = rawName.trim();
-    if (!name) {
-      setStatus("Preset name cannot be empty.", "warn");
-      return;
-    }
-    if (name === current) return;
-    if (isBuiltInPreset(name)) {
-      setStatus("Built-in preset names are reserved and read-only.", "warn");
-      return;
-    }
-    if (userPresets[name] && !confirm(`Overwrite existing user preset "${name}"?`)) {
-      return;
-    }
-
-    userPresets[name] = userPresets[current];
-    delete userPresets[current];
-    rebuildPresetMap();
-    saveUserPresetsToStorage();
-    initializePresets({ preferredName: name, silentApply: true });
-    setStatus(`Renamed preset to: ${name}`, "success");
-  });
-
-  deletePresetBtn?.addEventListener("click", () => {
-    const current = presetControl?.getValue();
-    if (!current || isBuiltInPreset(current) || !userPresets[current]) {
-      setStatus("Only user presets can be deleted.", "warn");
-      return;
-    }
-    if (!confirm(`Delete user preset "${current}"?`)) return;
-
-    delete userPresets[current];
-    rebuildPresetMap();
-    saveUserPresetsToStorage();
-    initializePresets({ preferredName: "Consumer TV", silentApply: true });
-    setStatus(`Deleted preset: ${current}`, "success");
-  });
-
-  exportPresetsBtn?.addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(getUserPresetsDocument(), null, 2)], { type: "application/json" });
-    downloadBlob(blob, `crt-user-presets-${Date.now()}.json`);
-    setStatus("Exported user presets JSON.", "success");
-  });
-
-  importPresetsBtn?.addEventListener("click", () => {
-    importPresetsInput?.click();
-  });
-
-  importPresetsInput?.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const migrated = migrateUserPresetsDocument(parsed);
-      const imported = sanitizeUserPresetsMap(migrated.presets);
-      userPresets = imported;
-      rebuildPresetMap();
-      saveUserPresetsToStorage();
-      initializePresets({ preferredName: Object.keys(imported)[0] || "Consumer TV", silentApply: true });
-      setStatus(`Imported ${Object.keys(imported).length} user presets.`, "success");
-    } catch (error) {
-      setStatus(`Failed to import presets: ${error.message}`, "error");
-    } finally {
-      importPresetsInput.value = "";
-    }
-  });
-
   resetParamsBtn.addEventListener("click", () => {
     resetParameters();
   });
 
   resetSourceBtn.addEventListener("click", () => {
     clearLoadedSource();
-  });
-
-  saveProjectBtn.addEventListener("click", () => {
-    const model = createProjectModel();
-    const blob = new Blob([JSON.stringify(model, null, 2)], { type: "application/json" });
-    downloadBlob(blob, `crt-project-${Date.now()}.json`);
-    setStatus("Project saved to JSON.", "success");
-  });
-
-  loadProjectBtn.addEventListener("click", () => {
-    projectFileInput.click();
-  });
-
-  projectFileInput.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      applyProjectState(parsed);
-    } catch (error) {
-      setStatus(`Couldn't load project file: ${error.message}`, "error");
-    } finally {
-      projectFileInput.value = "";
-    }
-  });
-
-  copyShareLinkBtn.addEventListener("click", async () => {
-    try {
-      const compactState = createProjectModel({ compact: true });
-      const encoded = encodeStateForUrl(compactState);
-      const url = new URL(window.location.href);
-      url.searchParams.set("state", encoded);
-      url.hash = "";
-      const shareLink = url.toString();
-      await navigator.clipboard.writeText(shareLink);
-      setStatus("Share link copied to clipboard.", "success");
-    } catch (error) {
-      setStatus(`Couldn't copy share link: ${error.message}`, "error");
-    }
   });
 
   for (const id of [...controlIds, "fps", "duration"]) {
@@ -2319,19 +1222,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   for (const id of [...controlIds, "previewTime"]) {
     setupRangeWithNumber(id);
   }
-
-  renderEngineControl = setupSelectionBox("renderEngine", {
-    onChange: () => {
-      applyRendererSelection({ announce: true });
-      markPreviewDirty();
-      progressEl.value = 0;
-    },
-  });
-  if (!gpuSupported) {
-    const gpuButton = document.querySelector("#renderEngine button[data-value=\"gpu\"]");
-    if (gpuButton) gpuButton.disabled = true;
-  }
-  applyRendererSelection({ announce: false });
 
   previewModeControl = setupSelectionBox("previewMode", {
     onChange: () => {
@@ -2378,23 +1268,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     },
   });
 
-  batchDefaultModeControl = setupSelectionBox("batchDefaultMode", {
-    onChange: () => {
-      saveBatchSettings();
-      renderBatchQueue();
-    },
-  });
-
-  loadBatchSettings();
-  renderBatchQueue();
   setExportAvailability();
-  loadUserPresetsFromStorage();
   initializePresets();
   defaultParamValues = readParams();
   updatePreviewControlsState();
   updateExportControlsState();
   syncPreviewTimeControl();
-  const hasUrlState = tryHydrateFromUrl();
   window.addEventListener("beforeunload", () => {
     if (loadedVideo?.objectUrl) {
       URL.revokeObjectURL(loadedVideo.objectUrl);
@@ -2405,12 +1284,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   });
 
 
-  if (!hasUrlState) {
-    if (!gpuSupported) {
-      setStatus("GPU renderer unavailable in this browser. Using CPU fallback.", "warn");
-    }
-
-    setStatus("Load an image or video (MP4/WebM/MOV/etc.) to begin.", "info");
-  }
+  setStatus("Load an image or video (MP4/WebM/MOV/etc.) to begin.", "info");
   requestAnimationFrame(animate);
 })();
