@@ -571,6 +571,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const progressEl = document.getElementById("progress");
   const previewBuffer = document.createElement("canvas");
   const exportBtn = document.getElementById("exportBtn");
+  const downloadStillBtn = document.getElementById("downloadStillBtn");
   const cancelExportBtn = document.getElementById("cancelExportBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
   const resetSourceBtn = document.getElementById("resetSourceBtn");
@@ -709,6 +710,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function setExportAvailability() {
     exportBtn.disabled = !hasLoadedSource || isExporting;
+    downloadStillBtn.disabled = !hasLoadedSource || isExporting;
     cancelExportBtn.disabled = !isExporting;
     resetSourceBtn.disabled = isExporting;
     resetParamsBtn.disabled = isExporting;
@@ -716,6 +718,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     document.getElementById("fps").disabled = isExporting;
     document.getElementById("duration").disabled = isExporting;
     document.getElementById("exportQuality").disabled = isExporting;
+    document.getElementById("stillFormat").disabled = isExporting;
+    document.getElementById("stillJpegQuality").disabled = isExporting || document.getElementById("stillFormat").value !== "jpeg";
     exportFormatControl?.setDisabled(isExporting);
     updateExportControlsState();
   }
@@ -888,6 +892,43 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     return Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
   }
 
+  function getSafePresetName() {
+    const presetName = presetControl?.getValue() || "custom";
+    return String(presetName).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "custom";
+  }
+
+  async function renderCurrentPreviewFrameToCanvas(targetCtx, width, height, { secondsOverride } = {}) {
+    const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
+    const params = readParams();
+    const stillMode = isStillPreviewMode();
+
+    let frameSeconds = Number.isFinite(secondsOverride) ? Math.max(0, secondsOverride) : 0;
+    if (loadedSourceType === "video" && loadedVideo?.video) {
+      const video = loadedVideo.video;
+      frameSeconds = stillMode ? previewTargetSeconds : video.currentTime;
+      await seekVideo(video, frameSeconds);
+      renderer.setImage(video, getSourceScale());
+    } else if (loadedImage) {
+      renderer.setImage(loadedImage, getSourceScale());
+    }
+
+    const frameIndex = Math.max(0, Math.floor(frameSeconds * fps));
+    renderer.render(targetCtx, width, height, frameSeconds, params, frameIndex, fps);
+
+    if (targetCtx === ctx) {
+      previewFrameSeconds = frameSeconds;
+      if (loadedSourceType === "video" && stillMode) {
+        previewTargetSeconds = frameSeconds;
+        const previewTime = document.getElementById("previewTime");
+        previewTime.value = frameSeconds.toFixed(3);
+        previewTime.__syncRangeNumber?.();
+      }
+      previewDirty = false;
+    }
+
+    return frameSeconds;
+  }
+
   function applyPreset(name) {
     const values = presets[name];
     if (!values) return;
@@ -1033,20 +1074,30 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (shouldRender) {
       const { width: previewWidth, height: previewHeight } = getPreviewRenderSize();
       if (previewWidth === canvas.width && previewHeight === canvas.height) {
-        renderer.render(ctx, canvas.width, canvas.height, frame / fps, readParams(), frame, fps);
+        renderCurrentPreviewFrameToCanvas(ctx, canvas.width, canvas.height, { secondsOverride: frame / fps }).catch((error) => {
+          console.warn("Preview render failed", error);
+        });
       } else {
         previewBuffer.width = previewWidth;
         previewBuffer.height = previewHeight;
         const previewCtx = previewBuffer.getContext("2d", { alpha: false, desynchronized: true });
-        renderer.render(previewCtx, previewBuffer.width, previewBuffer.height, frame / fps, readParams(), frame, fps);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(previewBuffer, 0, 0, canvas.width, canvas.height);
+        renderCurrentPreviewFrameToCanvas(previewCtx, previewBuffer.width, previewBuffer.height, { secondsOverride: frame / fps })
+          .then(() => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(previewBuffer, 0, 0, canvas.width, canvas.height);
+            previewDirty = false;
+          })
+          .catch((error) => {
+            console.warn("Preview render failed", error);
+          });
       }
-      previewDirty = false;
+      if (previewWidth === canvas.width && previewHeight === canvas.height) {
+        previewDirty = false;
+      }
     }
     requestAnimationFrame(animate);
   }
@@ -1119,6 +1170,53 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     previewNeedsSeek = true;
     markPreviewDirty();
     progressEl.value = 0;
+  });
+
+  document.getElementById("stillFormat").addEventListener("change", () => {
+    setExportAvailability();
+  });
+
+  downloadStillBtn.addEventListener("click", async () => {
+    if (!hasLoadedSource) {
+      setStatus("Load an image or video before exporting a still.", "warn");
+      return;
+    }
+
+    try {
+      isExporting = true;
+      setExportAvailability();
+      progressEl.value = 0;
+      setStatus("Rendering still frame...", "info");
+
+      const frameSeconds = await renderCurrentPreviewFrameToCanvas(ctx, canvas.width, canvas.height);
+      const stillFormat = document.getElementById("stillFormat").value === "jpeg" ? "jpeg" : "png";
+      const mimeType = stillFormat === "jpeg" ? "image/jpeg" : "image/png";
+      const jpegQualityRaw = Number(document.getElementById("stillJpegQuality").value);
+      const jpegQuality = Math.max(0.1, Math.min(1, Number.isFinite(jpegQualityRaw) ? jpegQualityRaw : 0.92));
+      const extension = stillFormat === "jpeg" ? "jpg" : "png";
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((nextBlob) => {
+          if (!nextBlob) {
+            reject(new Error("Canvas export returned an empty blob."));
+            return;
+          }
+          resolve(nextBlob);
+        }, mimeType, stillFormat === "jpeg" ? jpegQuality : undefined);
+      });
+
+      const timestamp = new Date().toISOString().replace(/[.:]/g, "-");
+      const filename = `crt-still-${getSafePresetName()}-${timestamp}.${extension}`;
+      downloadBlob(blob, filename);
+      progressEl.value = 1;
+      setStatus(`Still saved (${extension.toUpperCase()}) at ${frameSeconds.toFixed(3)}s.`, "success");
+    } catch (error) {
+      setStatus(`Still export failed: ${error.message}`, "error");
+      console.error(error);
+    } finally {
+      isExporting = false;
+      setExportAvailability();
+    }
   });
 
   exportBtn.addEventListener("click", async () => {
