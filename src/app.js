@@ -74,6 +74,7 @@ const FALLBACK_PRESETS = {
 const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
 const USER_PRESETS_STORAGE_KEY = "crt.userPresets.v1";
 const USER_PRESETS_SCHEMA_VERSION = 1;
+const BATCH_SETTINGS_STORAGE_KEY = "crt.batchSettings.v1";
 
 function seededNoise(x, y, frame) {
   const v = Math.sin(x * 12.9898 + y * 78.233 + frame * 19.17) * 43758.5453;
@@ -381,7 +382,7 @@ function getTargetBitrate(width, height, fps) {
   return Math.max(5_000_000, Math.min(35_000_000, estimated));
 }
 
-async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1 }) {
+async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, autoDownload = true, outputName }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
   }
@@ -475,7 +476,11 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   muxer.finalize();
 
   const blob = new Blob([target.buffer], { type: "video/mp4" });
-  downloadBlob(blob, `crt-export-${Date.now()}.mp4`);
+  if (autoDownload) {
+    const defaultName = `crt-export-${Date.now()}.mp4`;
+    downloadBlob(blob, outputName ? `${outputName}.mp4` : defaultName);
+  }
+  return blob;
 }
 
 function getSupportedWebmMimeType(withAudio) {
@@ -485,7 +490,7 @@ function getSupportedWebmMimeType(withAudio) {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
 }
 
-async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio }) {
+async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio, autoDownload = true, outputName }) {
   const width = canvas.width;
   const height = canvas.height;
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -562,7 +567,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   const blob = new Blob(chunks, { type: mimeType });
-  downloadBlob(blob, `crt-export-${Date.now()}.webm`);
+  if (autoDownload) {
+    const defaultName = `crt-export-${Date.now()}.webm`;
+    downloadBlob(blob, outputName ? `${outputName}.webm` : defaultName);
+  }
+  return blob;
 }
 
 (function boot() {
@@ -589,6 +598,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const resetSourceBtn = document.getElementById("resetSourceBtn");
   const imageInput = document.getElementById("imageInput");
   const presetSelect = document.getElementById("presetSelect");
+  const batchInput = document.getElementById("batchInput");
+  const addBatchBtn = document.getElementById("addBatchBtn");
+  const clearBatchBtn = document.getElementById("clearBatchBtn");
+  const runBatchBtn = document.getElementById("runBatchBtn");
+  const cancelBatchBtn = document.getElementById("cancelBatchBtn");
+  const batchQueueList = document.getElementById("batchQueueList");
+  const batchSkipOnErrorEl = document.getElementById("batchSkipOnError");
+  const batchOverallProgressEl = document.getElementById("batchOverallProgress");
 
   const controlIds = [
     "scanlineStrength",
@@ -617,6 +634,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let activeExportController = null;
   let isExporting = false;
   let previewDirty = true;
+  let batchDefaultModeControl;
+  let batchQueue = [];
+  let batchJob = null;
 
   function setupRangeWithNumber(id) {
     const slider = document.getElementById(id);
@@ -723,22 +743,146 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   function setExportAvailability() {
-    exportBtn.disabled = !hasLoadedSource || isExporting;
-    downloadStillBtn.disabled = !hasLoadedSource || isExporting;
-    saveProjectBtn.disabled = isExporting;
-    loadProjectBtn.disabled = isExporting;
-    copyShareLinkBtn.disabled = isExporting;
+    const hasBatchItems = batchQueue.length > 0;
+    const isBatchRunning = !!batchJob;
+    exportBtn.disabled = !hasLoadedSource || isExporting || isBatchRunning;
+    downloadStillBtn.disabled = !hasLoadedSource || isExporting || isBatchRunning;
+    saveProjectBtn.disabled = isExporting || isBatchRunning;
+    loadProjectBtn.disabled = isExporting || isBatchRunning;
+    copyShareLinkBtn.disabled = isExporting || isBatchRunning;
     cancelExportBtn.disabled = !isExporting;
-    resetSourceBtn.disabled = isExporting;
-    resetParamsBtn.disabled = isExporting;
-    imageInput.disabled = isExporting;
-    document.getElementById("fps").disabled = isExporting;
-    document.getElementById("duration").disabled = isExporting;
-    document.getElementById("exportQuality").disabled = isExporting;
-    document.getElementById("stillFormat").disabled = isExporting;
-    document.getElementById("stillJpegQuality").disabled = isExporting || document.getElementById("stillFormat").value !== "jpeg";
-    exportFormatControl?.setDisabled(isExporting);
+    resetSourceBtn.disabled = isExporting || isBatchRunning;
+    resetParamsBtn.disabled = isExporting || isBatchRunning;
+    imageInput.disabled = isExporting || isBatchRunning;
+    document.getElementById("fps").disabled = isExporting || isBatchRunning;
+    document.getElementById("duration").disabled = isExporting || isBatchRunning;
+    document.getElementById("exportQuality").disabled = isExporting || isBatchRunning;
+    document.getElementById("stillFormat").disabled = isExporting || isBatchRunning;
+    document.getElementById("stillJpegQuality").disabled = isExporting || isBatchRunning || document.getElementById("stillFormat").value !== "jpeg";
+    batchInput.disabled = isBatchRunning;
+    addBatchBtn.disabled = isBatchRunning;
+    clearBatchBtn.disabled = isBatchRunning || !hasBatchItems;
+    runBatchBtn.disabled = isBatchRunning || hasBatchItems === false;
+    cancelBatchBtn.disabled = !isBatchRunning;
+    batchSkipOnErrorEl.disabled = isBatchRunning;
+    exportFormatControl?.setDisabled(isExporting || isBatchRunning);
+    batchDefaultModeControl?.setDisabled(isBatchRunning);
     updateExportControlsState();
+  }
+
+  function getBatchSettings() {
+    return {
+      defaultMode: batchDefaultModeControl?.getValue() === "still" ? "still" : "video",
+      skipOnError: !!batchSkipOnErrorEl.checked,
+    };
+  }
+
+  function saveBatchSettings() {
+    try {
+      localStorage.setItem(BATCH_SETTINGS_STORAGE_KEY, JSON.stringify(getBatchSettings()));
+    } catch (error) {
+      console.warn("Couldn't save batch settings", error);
+    }
+  }
+
+  function loadBatchSettings() {
+    try {
+      const raw = localStorage.getItem(BATCH_SETTINGS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed?.defaultMode === "still" || parsed?.defaultMode === "video") {
+        batchDefaultModeControl?.setValue(parsed.defaultMode, { silent: true });
+      }
+      if (typeof parsed?.skipOnError === "boolean") {
+        batchSkipOnErrorEl.checked = parsed.skipOnError;
+      }
+    } catch (error) {
+      console.warn("Couldn't load batch settings", error);
+    }
+  }
+
+  function sanitizeFilename(value) {
+    return String(value || "export").trim().replace(/[\/:*?"<>|]+/g, "-").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "export";
+  }
+
+  function getBatchItemMode(item) {
+    return item?.overrides?.mode || getBatchSettings().defaultMode;
+  }
+
+  function updateBatchOverallProgress() {
+    if (!batchQueue.length) {
+      batchOverallProgressEl.value = 0;
+      return;
+    }
+    const sum = batchQueue.reduce((acc, item) => acc + (Number(item.progress) || 0), 0);
+    batchOverallProgressEl.value = Math.max(0, Math.min(1, sum / batchQueue.length));
+  }
+
+  function renderBatchQueue() {
+    if (!batchQueue.length) {
+      batchQueueList.innerHTML = '<div class="batch-empty">No queued files yet.</div>';
+      updateBatchOverallProgress();
+      setExportAvailability();
+      return;
+    }
+
+    const isBatchRunning = !!batchJob;
+    batchQueueList.innerHTML = "";
+
+    batchQueue.forEach((item, index) => {
+      const card = document.createElement("div");
+      card.className = "batch-item";
+      const modeValue = getBatchItemMode(item);
+      const modeLabel = modeValue === "still" ? "Single frame" : "Loop video";
+      card.innerHTML = `
+        <div class="batch-item-header">
+          <div class="batch-item-title" title="${item.file.name}">${index + 1}. ${item.file.name}</div>
+          <div class="batch-item-status">${item.status}${item.error ? ` · ${item.error}` : ""}</div>
+        </div>
+        <div class="batch-item-row">
+          <input data-action="name" value="${item.targetName}" ${isBatchRunning ? "disabled" : ""} />
+          <select data-action="mode" ${isBatchRunning ? "disabled" : ""}>
+            <option value="video" ${modeValue === "video" ? "selected" : ""}>${modeLabel === "Loop video" ? "Loop video" : "Loop video (override)"}</option>
+            <option value="still" ${modeValue === "still" ? "selected" : ""}>Single frame</option>
+          </select>
+          <button data-action="up" ${isBatchRunning || index === 0 ? "disabled" : ""}>↑</button>
+          <button data-action="down" ${isBatchRunning || index === batchQueue.length - 1 ? "disabled" : ""}>↓</button>
+        </div>
+        <div class="batch-item-row">
+          <progress max="1" value="${Math.max(0, Math.min(1, item.progress || 0))}"></progress>
+          <button data-action="remove" ${isBatchRunning ? "disabled" : ""}>Remove</button>
+        </div>
+      `;
+
+      card.querySelector('[data-action="name"]').addEventListener("input", (event) => {
+        item.targetName = sanitizeFilename(event.target.value);
+      });
+      card.querySelector('[data-action="mode"]').addEventListener("change", (event) => {
+        const next = event.target.value === "still" ? "still" : "video";
+        item.overrides = { ...(item.overrides || {}), mode: next };
+        saveBatchSettings();
+      });
+      card.querySelector('[data-action="up"]').addEventListener("click", () => {
+        if (index <= 0) return;
+        const [moved] = batchQueue.splice(index, 1);
+        batchQueue.splice(index - 1, 0, moved);
+        renderBatchQueue();
+      });
+      card.querySelector('[data-action="down"]').addEventListener("click", () => {
+        if (index >= batchQueue.length - 1) return;
+        const [moved] = batchQueue.splice(index, 1);
+        batchQueue.splice(index + 1, 0, moved);
+        renderBatchQueue();
+      });
+      card.querySelector('[data-action="remove"]').addEventListener("click", () => {
+        batchQueue.splice(index, 1);
+        renderBatchQueue();
+      });
+      batchQueueList.appendChild(card);
+    });
+
+    updateBatchOverallProgress();
+    setExportAvailability();
   }
 
   let previewModeControl;
@@ -1418,6 +1562,190 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     await waitForVideoEvent(video, "seeked");
   }
 
+  async function exportStillBlob({ outputName, frameSeconds = 0, signal }) {
+    if (signal?.aborted) {
+      throw new DOMException("The operation was aborted.", "AbortError");
+    }
+    renderer.render(ctx, canvas.width, canvas.height, frameSeconds, readParams(), Math.max(0, Math.floor(frameSeconds * (Number(document.getElementById("fps").value) || 30))), Number(document.getElementById("fps").value) || 30);
+    const stillFormat = document.getElementById("stillFormat").value === "jpeg" ? "jpeg" : "png";
+    const mimeType = stillFormat === "jpeg" ? "image/jpeg" : "image/png";
+    const jpegQualityRaw = Number(document.getElementById("stillJpegQuality").value);
+    const jpegQuality = Math.max(0.1, Math.min(1, Number.isFinite(jpegQualityRaw) ? jpegQualityRaw : 0.92));
+    const extension = stillFormat === "jpeg" ? "jpg" : "png";
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((nextBlob) => {
+        if (!nextBlob) {
+          reject(new Error("Canvas export returned an empty blob."));
+          return;
+        }
+        resolve(nextBlob);
+      }, mimeType, stillFormat === "jpeg" ? jpegQuality : undefined);
+    });
+
+    downloadBlob(blob, `${sanitizeFilename(outputName)}.${extension}`);
+    return blob;
+  }
+
+  function cleanupBatchSource(source) {
+    if (!source) return;
+    if (source.type === "video" && source.videoRef?.video) {
+      source.videoRef.video.pause();
+      source.videoRef.video.removeAttribute("src");
+      source.videoRef.video.load();
+    }
+    if (source.videoRef?.objectUrl) {
+      URL.revokeObjectURL(source.videoRef.objectUrl);
+    }
+    if (source.type === "image" && source.imageRef && typeof source.imageRef.close === "function") {
+      source.imageRef.close();
+    }
+  }
+
+  async function runBatchQueue() {
+    if (!batchQueue.length || batchJob) return;
+
+    const previousSource = { loadedVideo, loadedImage, loadedSourceType, hasLoadedSource, canvasWidth: canvas.width, canvasHeight: canvas.height };
+    const controller = new AbortController();
+    batchJob = { controller };
+    for (const item of batchQueue) {
+      item.status = "Queued";
+      item.progress = 0;
+      item.error = "";
+    }
+    renderBatchQueue();
+    setStatus(`Starting batch export (${batchQueue.length} items)...`, "info");
+
+    const skipOnError = !!batchSkipOnErrorEl.checked;
+    const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
+    const duration = Math.max(0.5, Number(document.getElementById("duration").value) || 4);
+    const qualityMultiplier = Math.max(0.5, Math.min(2.5, Number(document.getElementById("exportQuality").value) || 1));
+    const includeOriginalAudio = document.getElementById("includeOriginalAudio").checked;
+    const selectedFormat = exportFormatControl?.getValue() || "mp4";
+
+    try {
+      for (let index = 0; index < batchQueue.length; index++) {
+        const item = batchQueue[index];
+        if (controller.signal.aborted) {
+          throw new DOMException("Batch cancelled", "AbortError");
+        }
+        item.status = "Processing";
+        item.progress = 0;
+        renderBatchQueue();
+
+        let source = null;
+        try {
+          const isVideoFile = item.file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(item.file.name);
+          if (isVideoFile) {
+            const videoRef = await loadVideoFromFile(item.file);
+            source = { type: "video", videoRef };
+            loadedVideo = videoRef;
+            loadedImage = null;
+            loadedSourceType = "video";
+            hasLoadedSource = true;
+            canvas.width = videoRef.video.videoWidth;
+            canvas.height = videoRef.video.videoHeight;
+            await seekVideo(videoRef.video, 0);
+            renderer.setImage(videoRef.video, getSourceScale());
+          } else {
+            const imageRef = await loadImageFromFile(item.file);
+            source = { type: "image", imageRef };
+            loadedImage = imageRef;
+            loadedVideo = null;
+            loadedSourceType = "image";
+            hasLoadedSource = true;
+            canvas.width = imageRef.naturalWidth || imageRef.width;
+            canvas.height = imageRef.naturalHeight || imageRef.height;
+            renderer.setImage(imageRef, getSourceScale());
+          }
+
+          const mode = getBatchItemMode(item);
+          const safeOutputName = sanitizeFilename(item.targetName || item.file.name.replace(/\.[^.]+$/, ""));
+          const isStillMode = mode === "still" && source.type === "image";
+
+          if (isStillMode) {
+            await exportStillBlob({ outputName: safeOutputName, frameSeconds: 0, signal: controller.signal });
+            item.progress = 1;
+          } else if (selectedFormat === "webm" || (includeOriginalAudio && source.type === "video")) {
+            await exportWebmRealtime({
+              canvas,
+              renderer,
+              params: readParams(),
+              fps,
+              duration,
+              loadedSourceType,
+              loadedVideo,
+              loadedImage,
+              sourceScale: getSourceScale,
+              includeAudio: includeOriginalAudio && source.type === "video",
+              onProgress: (value) => {
+                item.progress = value;
+                updateBatchOverallProgress();
+              },
+              signal: controller.signal,
+              outputName: safeOutputName,
+            });
+          } else {
+            await exportMp4({
+              canvas,
+              renderer,
+              params: readParams(),
+              fps,
+              duration,
+              beforeRenderFrame: source.type === "video"
+                ? async (t) => {
+                    await seekVideo(source.videoRef.video, t);
+                    renderer.setImage(source.videoRef.video, getSourceScale());
+                  }
+                : null,
+              onProgress: (value) => {
+                item.progress = value;
+                updateBatchOverallProgress();
+              },
+              signal: controller.signal,
+              bitrateScale: qualityMultiplier,
+              outputName: safeOutputName,
+            });
+          }
+
+          item.status = "Done";
+          item.progress = 1;
+        } catch (error) {
+          item.status = error?.name === "AbortError" ? "Cancelled" : "Failed";
+          item.error = error?.message || "Unknown error";
+          if (!skipOnError && error?.name !== "AbortError") {
+            throw error;
+          }
+          if (error?.name === "AbortError") {
+            throw error;
+          }
+        } finally {
+          cleanupBatchSource(source);
+          renderBatchQueue();
+        }
+      }
+      setStatus("Batch export finished.", "success");
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        setStatus("Batch export cancelled.", "warn");
+      } else {
+        setStatus(`Batch export failed: ${error.message}`, "error");
+      }
+    } finally {
+      loadedVideo = previousSource.loadedVideo;
+      loadedImage = previousSource.loadedImage;
+      loadedSourceType = previousSource.loadedSourceType;
+      hasLoadedSource = previousSource.hasLoadedSource;
+      canvas.width = previousSource.canvasWidth;
+      canvas.height = previousSource.canvasHeight;
+      refreshRendererSource();
+      markPreviewDirty();
+      batchJob = null;
+      renderBatchQueue();
+      setExportAvailability();
+    }
+  }
+
   function animate(now) {
     const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
     const elapsed = (now - start) / 1000;
@@ -1545,6 +1873,55 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       console.error(error);
     }
   });
+
+
+  addBatchBtn?.addEventListener("click", () => {
+    const files = Array.from(batchInput.files || []);
+    if (!files.length) {
+      setStatus("Select one or more files for the batch queue.", "warn");
+      return;
+    }
+
+    for (const file of files) {
+      const baseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, ""));
+      batchQueue.push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file,
+        metadata: {
+          name: file.name,
+          size: file.size,
+          type: file.type || "application/octet-stream",
+          lastModified: file.lastModified,
+        },
+        targetName: baseName,
+        overrides: {},
+        status: "Queued",
+        progress: 0,
+        error: "",
+      });
+    }
+    batchInput.value = "";
+    renderBatchQueue();
+    setStatus(`Added ${files.length} file(s) to batch queue.`, "success");
+  });
+
+  clearBatchBtn?.addEventListener("click", () => {
+    batchQueue = [];
+    renderBatchQueue();
+    setStatus("Batch queue cleared.", "info");
+  });
+
+  runBatchBtn?.addEventListener("click", () => {
+    runBatchQueue();
+  });
+
+  cancelBatchBtn?.addEventListener("click", () => {
+    if (!batchJob?.controller) return;
+    batchJob.controller.abort();
+    setStatus("Cancelling batch export...", "warn");
+  });
+
+  batchSkipOnErrorEl?.addEventListener("change", saveBatchSettings);
 
   document.getElementById("previewFps").addEventListener("input", () => {
     markPreviewDirty();
@@ -1891,6 +2268,15 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     },
   });
 
+  batchDefaultModeControl = setupSelectionBox("batchDefaultMode", {
+    onChange: () => {
+      saveBatchSettings();
+      renderBatchQueue();
+    },
+  });
+
+  loadBatchSettings();
+  renderBatchQueue();
   setExportAvailability();
   loadUserPresetsFromStorage();
   initializePresets();

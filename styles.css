@@ -242,3 +242,63 @@ progress {
 #presetSelect button[data-preset-origin="builtin"] {
   border-style: dashed;
 }
+
+.batch-list {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.batch-item {
+  border: 1px solid #343434;
+  border-radius: 6px;
+  background: #202020;
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.batch-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+}
+
+.batch-item-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-item-status {
+  color: #aaaaaa;
+  font-size: 0.72rem;
+}
+
+.batch-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.batch-item-row input,
+.batch-item-row select,
+.batch-item-row button {
+  margin: 0;
+  font-size: 0.72rem;
+  padding: 0.3rem;
+}
+
+.batch-empty {
+  font-size: 0.8rem;
+  color: #999;
+  border: 1px dashed #3a3a3a;
+  border-radius: 6px;
+  padding: 0.5rem;
+  text-align: center;
+}
