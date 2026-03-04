@@ -22,43 +22,6 @@
             <label>Preset
               <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
             </label>
-            <div class="row preset-actions-row">
-              <button id="savePresetBtn" type="button">Save Current as Preset</button>
-              <button id="renamePresetBtn" type="button">Rename Preset</button>
-            </div>
-            <div class="row preset-actions-row">
-              <button id="deletePresetBtn" type="button">Delete Preset</button>
-              <button id="exportPresetsBtn" type="button">Export Presets JSON</button>
-            </div>
-            <button id="importPresetsBtn" type="button">Import Presets JSON</button>
-            <input id="importPresetsInput" type="file" accept="application/json,.json" hidden />
-          </div>
-        </details>
-
-        <details class="panel" open>
-          <summary>Batch Queue</summary>
-          <div class="panel-body">
-            <label class="file-input">
-              <span>Batch files</span>
-              <input id="batchInput" type="file" accept="image/*,video/*,.mov,.webm,.mp4" multiple />
-            </label>
-            <div class="row">
-              <button id="addBatchBtn" type="button">Add to queue</button>
-              <button id="clearBatchBtn" type="button">Clear queue</button>
-            </div>
-            <label>Default mode
-              <div id="batchDefaultMode" class="selection-box selection-inline" role="radiogroup" aria-label="Batch default mode">
-                <button type="button" data-value="video" data-selected="true">Loop video</button>
-                <button type="button" data-value="still">Single frame</button>
-              </div>
-            </label>
-            <label class="checkbox-row"><input id="batchSkipOnError" type="checkbox" checked /> Skip failed items and continue</label>
-            <div id="batchQueueList" class="batch-list"></div>
-            <div class="actions">
-              <button id="runBatchBtn" type="button">Run batch export</button>
-              <button id="cancelBatchBtn" type="button" disabled>Cancel batch</button>
-            </div>
-            <progress id="batchOverallProgress" max="1" value="0"></progress>
           </div>
         </details>
 
@@ -73,9 +36,11 @@
             <label>Chromatic aberration <span class="range-control"><input id="chromaticAberration" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Noise <span class="range-control"><input id="noise" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Pixel size <span class="range-control"><input id="pixelSize" type="range" min="1" max="8" step="1" value="1" /></span></label>
+            <label>Phosphor mask scale <span class="range-control"><input id="maskScale" type="range" min="1" max="4" step="0.1" value="1" /></span></label>
             <button id="resetParamsBtn" type="button">Reset parameters</button>
           </div>
         </details>
+
 
         <details class="panel">
           <summary>Advanced</summary>
@@ -94,13 +59,6 @@
         <details class="panel" open>
           <summary>Preview</summary>
           <div class="panel-body video-controls">
-            <label>Render engine
-              <div id="renderEngine" class="selection-box selection-inline" role="radiogroup" aria-label="Render engine">
-                <button type="button" data-value="auto" data-selected="true">Auto</button>
-                <button type="button" data-value="gpu">GPU</button>
-                <button type="button" data-value="cpu">CPU fallback</button>
-              </div>
-            </label>
             <label>Preview mode
               <div id="previewMode" class="selection-box" role="radiogroup" aria-label="Preview mode">
                 <button type="button" data-value="still" data-selected="true">Still</button>
@@ -157,25 +115,12 @@
             <label>Quality multiplier <input id="exportQuality" type="number" min="0.5" max="2.5" step="0.1" value="1" /></label>
             <label class="checkbox-row"><input id="includeOriginalAudio" type="checkbox" /> Include original audio (video sources)</label>
             <p class="export-note">Audio passthrough uses realtime WebM export for best compatibility.</p>
-            <div class="row">
-              <label>Still format
-                <select id="stillFormat">
-                  <option value="png" selected>PNG</option>
-                  <option value="jpeg">JPEG</option>
-                </select>
-              </label>
-              <label>JPEG quality <input id="stillJpegQuality" type="number" min="0.1" max="1" step="0.05" value="0.92" /></label>
-            </div>
             <div class="actions">
               <button id="exportBtn">Export</button>
               <button id="downloadStillBtn" type="button">Download still</button>
-              <button id="saveProjectBtn" type="button">Save Project</button>
-              <button id="loadProjectBtn" type="button">Load Project</button>
-              <button id="copyShareLinkBtn" type="button">Copy Share Link</button>
               <button id="cancelExportBtn" type="button" disabled>Cancel export</button>
               <button id="resetSourceBtn" type="button">Reset source</button>
             </div>
-            <input id="projectFileInput" type="file" accept="application/json,.json" hidden />
           </div>
         </details>
 
@@ -188,6 +133,6 @@
       </section>
     </main>
 
-    <script type="module" src="./src/main.js"></script>
+    <script src="./src/app.js"></script>
   </body>
 </html>
