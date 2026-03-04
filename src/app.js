@@ -8,6 +8,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.5,
     noise: 0.5,
     pixelSize: 1,
+    maskScale: 1,
   },
   "PVM/BVM": {
     scanlineStrength: 0.25,
@@ -18,6 +19,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.08,
     noise: 0.16,
     pixelSize: 1,
+    maskScale: 1,
   },
   Arcade: {
     scanlineStrength: 0.4,
@@ -28,6 +30,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.2,
     noise: 0.3,
     pixelSize: 1,
+    maskScale: 1,
   },
   "Trinitron RGB Monitor": {
     scanlineStrength: 0.2,
@@ -38,6 +41,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.06,
     noise: 0.05,
     pixelSize: 1,
+    maskScale: 1,
   },
   "VHS Composite": {
     scanlineStrength: 0.48,
@@ -48,6 +52,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.54,
     noise: 0.34,
     pixelSize: 2,
+    maskScale: 1,
   },
   "Portable CRT": {
     scanlineStrength: 0.56,
@@ -58,6 +63,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.26,
     noise: 0.24,
     pixelSize: 2,
+    maskScale: 1,
   },
   "Late-Night Broadcast": {
     scanlineStrength: 0.35,
@@ -68,6 +74,7 @@ const FALLBACK_PRESETS = {
     chromaticAberration: 0.22,
     noise: 0.2,
     pixelSize: 1,
+    maskScale: 1,
   },
 };
 
@@ -171,13 +178,15 @@ class CRTRenderer {
     const scan = params.scanlineStrength;
     const mask = params.phosphorMask;
     const pixelSize = Math.max(1, Number(params.pixelSize) || 1);
+    const maskScale = Math.max(1, Number(params.maskScale) || 1);
     const pixelInfluence = 1 + (pixelSize - 1) * 0.22;
     const pixelStepX = width > 1 ? 1 / (width - 1) : 0;
     const pixelStepY = height > 1 ? 1 / (height - 1) : 0;
 
     for (let y = 0; y < height; y++) {
       const ny = (y / (height - 1)) * 2 - 1;
-      const scanPhase = Math.sin((y + 0.5) * Math.PI);
+      const maskY = Math.floor(y / maskScale);
+      const scanPhase = Math.sin((maskY + 0.5) * Math.PI);
       const scanlineGain = 1 - scan * (0.35 + 0.65 * (0.5 + 0.5 * scanPhase));
 
       for (let x = 0; x < width; x++) {
@@ -237,14 +246,15 @@ class CRTRenderer {
         const bleed = (0.08 + params.bloom * 0.26 + mask * 0.08) * pixelInfluence * Math.pow(luminance, 0.75);
         const blend = Math.min(0.45, bleed);
 
-        const triad = x % 3;
+        const maskX = Math.floor(x / maskScale);
+        const triad = maskX % 3;
         const boost = 1 + mask * 0.52;
         const dim = 1 - mask * 0.32;
         const rMask = triad === 0 ? boost : dim;
         const gMask = triad === 1 ? boost : dim;
         const bMask = triad === 2 ? boost : dim;
 
-        const dither = (BAYER_4X4[y & 3][x & 3] / 15 - 0.5) * (1.4 + params.noise * 2.2);
+        const dither = (BAYER_4X4[maskY & 3][maskX & 3] / 15 - 0.5) * (1.4 + params.noise * 2.2);
 
         const redSoft = red * (1 - blend) + (redHoriz * 0.62 + redVert * 0.38) * blend;
         const greenSoft = green * (1 - blend) + (greenHoriz * 0.62 + greenVert * 0.38) * blend;
@@ -587,6 +597,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "chromaticAberration",
     "noise",
     "pixelSize",
+    "maskScale",
     "advancedLineJitter",
     "advancedTimebaseWobble",
     "advancedHeadSwitching",
