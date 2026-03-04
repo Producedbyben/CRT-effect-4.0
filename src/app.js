@@ -1387,7 +1387,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (loadedSourceType === "video" && loadedVideo?.video) {
       const video = loadedVideo.video;
       frameSeconds = stillMode ? previewTargetSeconds : video.currentTime;
-      await seekVideo(video, frameSeconds);
+      if (stillMode) {
+        await seekVideo(video, frameSeconds);
+      }
+
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        const ready = await waitForVideoReady(video, { timeoutMs: 300 });
+        if (!ready && video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+          return frameSeconds;
+        }
+      }
+
       setSourceForAllRenderers(video, getSourceScale());
     } else if (loadedImage) {
       setSourceForAllRenderers(loadedImage, getSourceScale());
@@ -1628,6 +1638,60 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
+  function waitForVideoReady(video, { timeoutMs = 1500 } = {}) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+      const cleanup = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        video.removeEventListener("loadeddata", handleReady);
+        video.removeEventListener("canplay", handleReady);
+        video.removeEventListener("error", handleError);
+      };
+
+      const handleReady = () => {
+        cleanup();
+        resolve(true);
+      };
+
+      const handleError = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      timeoutId = setTimeout(() => {
+        cleanup();
+        resolve(video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
+      }, Math.max(0, timeoutMs));
+
+      video.addEventListener("loadeddata", handleReady, { once: true });
+      video.addEventListener("canplay", handleReady, { once: true });
+      video.addEventListener("error", handleError, { once: true });
+    });
+  }
+
+  async function ensureVideoFrameReady(video) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return true;
+
+    let ready = await waitForVideoReady(video, { timeoutMs: 1200 });
+    if (ready) return true;
+
+    try {
+      await video.play();
+    } catch {
+      // ignore autoplay failures; we'll still wait briefly for decode readiness
+    }
+
+    ready = await waitForVideoReady(video, { timeoutMs: 1200 });
+    if (!video.paused) {
+      video.pause();
+    }
+    return ready;
+  }
+
   async function loadVideoFromFile(file) {
     const video = document.createElement("video");
     video.muted = true;
@@ -1639,6 +1703,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     video.src = objectUrl;
     video.load();
     await waitForVideoEvent(video, "loadedmetadata");
+    await ensureVideoFrameReady(video);
     if (!Number.isFinite(video.duration) || video.duration <= 0) {
       throw new Error("Video metadata is invalid or duration is unavailable.");
     }
