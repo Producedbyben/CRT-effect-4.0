@@ -72,6 +72,8 @@ const FALLBACK_PRESETS = {
 };
 
 const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
+const USER_PRESETS_STORAGE_KEY = "crt.userPresets.v1";
+const USER_PRESETS_SCHEMA_VERSION = 1;
 
 function seededNoise(x, y, frame) {
   const v = Math.sin(x * 12.9898 + y * 78.233 + frame * 19.17) * 43758.5453;
@@ -576,6 +578,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const loadProjectBtn = document.getElementById("loadProjectBtn");
   const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
   const projectFileInput = document.getElementById("projectFileInput");
+  const savePresetBtn = document.getElementById("savePresetBtn");
+  const renamePresetBtn = document.getElementById("renamePresetBtn");
+  const deletePresetBtn = document.getElementById("deletePresetBtn");
+  const exportPresetsBtn = document.getElementById("exportPresetsBtn");
+  const importPresetsBtn = document.getElementById("importPresetsBtn");
+  const importPresetsInput = document.getElementById("importPresetsInput");
   const cancelExportBtn = document.getElementById("cancelExportBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
   const resetSourceBtn = document.getElementById("resetSourceBtn");
@@ -597,7 +605,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let loadedSourceType = "image";
   let loadedVideo = null;
   let loadedImage = null;
-  const presets = { ...FALLBACK_PRESETS };
+  const builtInPresets = { ...FALLBACK_PRESETS };
+  let userPresets = {};
+  let presets = { ...builtInPresets };
   let start = performance.now();
   let previewFrameSeconds = 0;
   let previewTargetSeconds = 0;
@@ -1166,6 +1176,110 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     return frameSeconds;
   }
 
+  function isBuiltInPreset(name) {
+    return Object.prototype.hasOwnProperty.call(builtInPresets, name);
+  }
+
+  function normalizePresetValues(rawValues) {
+    const normalized = {};
+    for (const id of controlIds) {
+      const { min, max } = getNumericInputBounds(id, -Infinity, Infinity);
+      const value = clampNumber(Number(rawValues?.[id]), min, max);
+      if (value !== null) {
+        normalized[id] = value;
+      }
+    }
+    return normalized;
+  }
+
+  function rebuildPresetMap() {
+    presets = { ...builtInPresets, ...userPresets };
+  }
+
+  function getUserPresetsDocument() {
+    return {
+      schemaVersion: USER_PRESETS_SCHEMA_VERSION,
+      presets: { ...userPresets },
+    };
+  }
+
+  function migrateUserPresetsDocument(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: {} };
+    }
+
+    const version = Number(raw.schemaVersion);
+    if (!Number.isFinite(version)) {
+      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: raw };
+    }
+
+    if (version > USER_PRESETS_SCHEMA_VERSION) {
+      throw new Error(`Unsupported presets schema version ${version}.`);
+    }
+
+    if (version === 1) {
+      const sourcePresets = raw.presets && typeof raw.presets === "object" && !Array.isArray(raw.presets) ? raw.presets : {};
+      return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: sourcePresets };
+    }
+
+    return { schemaVersion: USER_PRESETS_SCHEMA_VERSION, presets: {} };
+  }
+
+  function sanitizeUserPresetsMap(rawPresets) {
+    const next = {};
+    if (!rawPresets || typeof rawPresets !== "object" || Array.isArray(rawPresets)) {
+      return next;
+    }
+
+    for (const [name, value] of Object.entries(rawPresets)) {
+      const cleanName = String(name || "").trim();
+      if (!cleanName || isBuiltInPreset(cleanName)) continue;
+      const normalized = normalizePresetValues(value);
+      if (Object.keys(normalized).length > 0) {
+        next[cleanName] = normalized;
+      }
+    }
+    return next;
+  }
+
+  function saveUserPresetsToStorage() {
+    try {
+      localStorage.setItem(USER_PRESETS_STORAGE_KEY, JSON.stringify(getUserPresetsDocument()));
+    } catch (error) {
+      console.warn("Failed to persist user presets", error);
+    }
+  }
+
+  function loadUserPresetsFromStorage() {
+    const raw = localStorage.getItem(USER_PRESETS_STORAGE_KEY);
+    if (!raw) {
+      userPresets = {};
+      rebuildPresetMap();
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      const migrated = migrateUserPresetsDocument(parsed);
+      userPresets = sanitizeUserPresetsMap(migrated.presets);
+      rebuildPresetMap();
+      if (migrated.schemaVersion !== USER_PRESETS_SCHEMA_VERSION || JSON.stringify(migrated.presets) !== JSON.stringify(userPresets)) {
+        saveUserPresetsToStorage();
+      }
+    } catch (error) {
+      console.warn("Failed to load user presets from storage", error);
+      userPresets = {};
+      rebuildPresetMap();
+    }
+  }
+
+  function updatePresetActionButtons() {
+    const activeName = presetControl?.getValue();
+    const editable = !!activeName && !isBuiltInPreset(activeName);
+    if (renamePresetBtn) renamePresetBtn.disabled = !editable;
+    if (deletePresetBtn) deletePresetBtn.disabled = !editable;
+  }
+
   function applyPreset(name) {
     const values = presets[name];
     if (!values) return;
@@ -1178,41 +1292,76 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
   }
 
-  function initializePresets() {
-    const names = Object.keys(presets);
-    presetSelect.innerHTML = "";
+  function createPresetGroup(title, names, selectedName) {
+    const group = document.createElement("div");
+    group.className = "preset-group";
+
+    const heading = document.createElement("div");
+    heading.className = "preset-group-title";
+    heading.textContent = title;
+    group.appendChild(heading);
 
     if (names.length === 0) {
-      const message = document.createElement("div");
-      message.className = "selection-empty";
-      message.textContent = "No presets available";
-      presetSelect.appendChild(message);
-      return;
+      const empty = document.createElement("div");
+      empty.className = "selection-empty";
+      empty.textContent = "None";
+      group.appendChild(empty);
+      return group;
     }
 
+    const options = document.createElement("div");
+    options.className = "selection-box selection-box-wrap";
     for (const name of names) {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.value = name;
       button.textContent = name;
-      if (name === "Consumer TV") {
-        button.dataset.selected = "true";
-      }
-      presetSelect.appendChild(button);
+      button.dataset.presetOrigin = isBuiltInPreset(name) ? "builtin" : "user";
+      if (selectedName === name) button.dataset.selected = "true";
+      options.appendChild(button);
     }
+    group.appendChild(options);
+    return group;
+  }
+
+  function initializePresets({ preferredName, silentApply = false } = {}) {
+    const builtInNames = Object.keys(builtInPresets);
+    const userNames = Object.keys(userPresets);
+    const allNames = [...builtInNames, ...userNames];
+    presetSelect.innerHTML = "";
+
+    if (allNames.length === 0) {
+      const message = document.createElement("div");
+      message.className = "selection-empty";
+      message.textContent = "No presets available";
+      presetSelect.appendChild(message);
+      updatePresetActionButtons();
+      return;
+    }
+
+    const currentSelection = preferredName || presetControl?.getValue();
+    const defaultPreset = builtInPresets["Consumer TV"] ? "Consumer TV" : allNames[0];
+    const selectedName = allNames.includes(currentSelection) ? currentSelection : defaultPreset;
+
+    presetSelect.appendChild(createPresetGroup("Built-in presets (read-only)", builtInNames, selectedName));
+    presetSelect.appendChild(createPresetGroup("Your presets", userNames, selectedName));
 
     presetControl = setupSelectionBox("presetSelect", {
       onChange: (name) => {
         applyPreset(name);
         markPreviewDirty();
         progressEl.value = 0;
+        updatePresetActionButtons();
         setStatus(`Preset applied: ${name}`, "success");
       },
     });
 
-    const defaultPreset = presets["Consumer TV"] ? "Consumer TV" : names[0];
-    presetControl.setValue(defaultPreset, { silent: true });
-    applyPreset(defaultPreset);
+    presetControl.setValue(selectedName, { silent: true });
+    applyPreset(selectedName);
+    updatePresetActionButtons();
+    if (!silentApply) {
+      markPreviewDirty();
+    }
   }
 
   async function loadImageFromFile(file) {
@@ -1539,6 +1688,105 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     setStatus("Cancelling export...", "warn");
   });
 
+  savePresetBtn?.addEventListener("click", () => {
+    const rawName = prompt("Preset name:");
+    if (rawName === null) return;
+    const name = rawName.trim();
+    if (!name) {
+      setStatus("Preset name cannot be empty.", "warn");
+      return;
+    }
+    if (isBuiltInPreset(name)) {
+      setStatus("Built-in preset names are reserved and read-only.", "warn");
+      return;
+    }
+    if (userPresets[name] && !confirm(`Overwrite user preset "${name}"?`)) {
+      return;
+    }
+
+    userPresets[name] = normalizePresetValues(readParams());
+    rebuildPresetMap();
+    saveUserPresetsToStorage();
+    initializePresets({ preferredName: name, silentApply: true });
+    setStatus(`Saved user preset: ${name}`, "success");
+  });
+
+  renamePresetBtn?.addEventListener("click", () => {
+    const current = presetControl?.getValue();
+    if (!current || isBuiltInPreset(current) || !userPresets[current]) {
+      setStatus("Only user presets can be renamed.", "warn");
+      return;
+    }
+
+    const rawName = prompt("New preset name:", current);
+    if (rawName === null) return;
+    const name = rawName.trim();
+    if (!name) {
+      setStatus("Preset name cannot be empty.", "warn");
+      return;
+    }
+    if (name === current) return;
+    if (isBuiltInPreset(name)) {
+      setStatus("Built-in preset names are reserved and read-only.", "warn");
+      return;
+    }
+    if (userPresets[name] && !confirm(`Overwrite existing user preset "${name}"?`)) {
+      return;
+    }
+
+    userPresets[name] = userPresets[current];
+    delete userPresets[current];
+    rebuildPresetMap();
+    saveUserPresetsToStorage();
+    initializePresets({ preferredName: name, silentApply: true });
+    setStatus(`Renamed preset to: ${name}`, "success");
+  });
+
+  deletePresetBtn?.addEventListener("click", () => {
+    const current = presetControl?.getValue();
+    if (!current || isBuiltInPreset(current) || !userPresets[current]) {
+      setStatus("Only user presets can be deleted.", "warn");
+      return;
+    }
+    if (!confirm(`Delete user preset "${current}"?`)) return;
+
+    delete userPresets[current];
+    rebuildPresetMap();
+    saveUserPresetsToStorage();
+    initializePresets({ preferredName: "Consumer TV", silentApply: true });
+    setStatus(`Deleted preset: ${current}`, "success");
+  });
+
+  exportPresetsBtn?.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(getUserPresetsDocument(), null, 2)], { type: "application/json" });
+    downloadBlob(blob, `crt-user-presets-${Date.now()}.json`);
+    setStatus("Exported user presets JSON.", "success");
+  });
+
+  importPresetsBtn?.addEventListener("click", () => {
+    importPresetsInput?.click();
+  });
+
+  importPresetsInput?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const migrated = migrateUserPresetsDocument(parsed);
+      const imported = sanitizeUserPresetsMap(migrated.presets);
+      userPresets = imported;
+      rebuildPresetMap();
+      saveUserPresetsToStorage();
+      initializePresets({ preferredName: Object.keys(imported)[0] || "Consumer TV", silentApply: true });
+      setStatus(`Imported ${Object.keys(imported).length} user presets.`, "success");
+    } catch (error) {
+      setStatus(`Failed to import presets: ${error.message}`, "error");
+    } finally {
+      importPresetsInput.value = "";
+    }
+  });
+
   resetParamsBtn.addEventListener("click", () => {
     resetParameters();
   });
@@ -1644,6 +1892,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   });
 
   setExportAvailability();
+  loadUserPresetsFromStorage();
   initializePresets();
   defaultParamValues = readParams();
   updatePreviewControlsState();
