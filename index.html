@@ -94,6 +94,13 @@
         <details class="panel" open>
           <summary>Preview</summary>
           <div class="panel-body video-controls">
+            <label>Render engine
+              <div id="renderEngine" class="selection-box selection-inline" role="radiogroup" aria-label="Render engine">
+                <button type="button" data-value="auto" data-selected="true">Auto</button>
+                <button type="button" data-value="gpu">GPU</button>
+                <button type="button" data-value="cpu">CPU fallback</button>
+              </div>
+            </label>
             <label>Preview mode
               <div id="previewMode" class="selection-box" role="radiogroup" aria-label="Preview mode">
                 <button type="button" data-value="still" data-selected="true">Still</button>

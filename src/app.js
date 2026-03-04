@@ -1,3 +1,5 @@
+import { CRTRendererGPU } from "./crt-renderer-gpu.js";
+
 const FALLBACK_PRESETS = {
   "Consumer TV": {
     scanlineStrength: 0.5,
@@ -544,9 +546,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const t = frame / fps;
     if (sourceVideo) {
       await seekVideo(sourceVideo, t);
-      renderer.setImage(sourceVideo, sourceScale());
+      setSourceForAllRenderers(sourceVideo, sourceScale());
     } else if (loadedImage) {
-      renderer.setImage(loadedImage, sourceScale());
+      setSourceForAllRenderers(loadedImage, sourceScale());
     }
 
     renderer.render(ctx, width, height, t, params, frame, fps);
@@ -575,7 +577,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 }
 
 (function boot() {
-  const renderer = new CRTRenderer();
+  const cpuRenderer = new CRTRenderer();
+  const gpuSupported = CRTRendererGPU.isSupported();
+  const gpuRenderer = gpuSupported ? new CRTRendererGPU() : null;
+  let renderer = cpuRenderer;
+  let renderEngineControl;
+  let consistencyCheckDone = false;
+  const exportCanvasPool = [];
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   const statusEl = document.getElementById("status");
@@ -607,6 +615,85 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const batchSkipOnErrorEl = document.getElementById("batchSkipOnError");
   const batchOverallProgressEl = document.getElementById("batchOverallProgress");
 
+  function applyRendererSelection({ announce = false } = {}) {
+    const selected = renderEngineControl?.getValue?.() || "auto";
+    const wantsGpu = selected === "gpu" || selected === "auto";
+    if (wantsGpu && gpuRenderer) {
+      renderer = gpuRenderer;
+      if (announce && selected === "gpu") setStatus("Render engine: GPU", "success");
+      return;
+    }
+    renderer = cpuRenderer;
+    if (selected === "gpu" && !gpuRenderer) {
+      setStatus("GPU renderer unavailable. Falling back to CPU.", "warn");
+      renderEngineControl?.setValue("cpu", { silent: true });
+      return;
+    }
+    if (announce && selected !== "auto") setStatus("Render engine: CPU", "info");
+  }
+
+  function setSourceForAllRenderers(img, sourceScale) {
+    cpuRenderer.setImage(img, sourceScale);
+    if (gpuRenderer) gpuRenderer.setImage(img, sourceScale);
+  }
+
+  function renderWithFallback(targetCtx, width, height, seconds, params, frameIndex, fps) {
+    try {
+      renderer.render(targetCtx, width, height, seconds, params, frameIndex, fps);
+    } catch (error) {
+      console.warn("Selected renderer failed; using CPU fallback.", error);
+      renderer = cpuRenderer;
+      renderEngineControl?.setValue("cpu", { silent: true });
+      setStatus("GPU renderer failed. Auto-fell back to CPU renderer.", "warn");
+      cpuRenderer.render(targetCtx, width, height, seconds, params, frameIndex, fps);
+    }
+  }
+
+  function getRenderTargetCanvas(width, height, { preferOffscreen = false } = {}) {
+    if (preferOffscreen && typeof OffscreenCanvas !== "undefined") {
+      return new OffscreenCanvas(width, height);
+    }
+    const pooled = exportCanvasPool.pop() || document.createElement("canvas");
+    pooled.width = width;
+    pooled.height = height;
+    return pooled;
+  }
+
+  function releaseRenderTargetCanvas(target) {
+    if (target instanceof HTMLCanvasElement) exportCanvasPool.push(target);
+  }
+
+  async function runConsistencyCheck() {
+    if (!gpuRenderer || consistencyCheckDone || !hasLoadedSource) return;
+    consistencyCheckDone = true;
+    const testCanvasA = document.createElement("canvas");
+    const testCanvasB = document.createElement("canvas");
+    testCanvasA.width = testCanvasB.width = 256;
+    testCanvasA.height = testCanvasB.height = 144;
+    const cpuCtx = testCanvasA.getContext("2d", { willReadFrequently: true });
+    const gpuCtx = testCanvasB.getContext("2d", { willReadFrequently: true });
+    const keyPresets = ["Consumer TV", "PVM/BVM", "VHS Composite"].filter((name) => presets[name]);
+    let totalDelta = 0;
+    for (const name of keyPresets) {
+      const params = normalizePresetValues(presets[name]);
+      cpuRenderer.render(cpuCtx, 256, 144, 0.25, params, 8, 30);
+      gpuRenderer.render(gpuCtx, 256, 144, 0.25, params, 8, 30);
+      const a = cpuCtx.getImageData(0, 0, 256, 144).data;
+      const b = gpuCtx.getImageData(0, 0, 256, 144).data;
+      let diff = 0;
+      for (let i = 0; i < a.length; i += 8) {
+        diff += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+      }
+      totalDelta += diff / (a.length / 8);
+    }
+    const meanDelta = totalDelta / Math.max(1, keyPresets.length);
+    if (meanDelta > 55) {
+      renderEngineControl?.setValue("cpu", { silent: true });
+      renderer = cpuRenderer;
+      setStatus("GPU/CPU preset consistency check failed. Using CPU renderer.", "warn");
+    }
+  }
+
   const controlIds = [
     "scanlineStrength",
     "phosphorMask",
@@ -637,6 +724,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let batchDefaultModeControl;
   let batchQueue = [];
   let batchJob = null;
+  const exportRendererProxy = {
+    render: (...args) => renderWithFallback(...args),
+  };
 
   function setupRangeWithNumber(id) {
     const slider = document.getElementById(id);
@@ -930,12 +1020,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function refreshRendererSource() {
     if (loadedSourceType === "video" && loadedVideo?.video) {
-      renderer.setImage(loadedVideo.video, getSourceScale());
+      setSourceForAllRenderers(loadedVideo.video, getSourceScale());
       markPreviewDirty();
       return;
     }
     if (loadedSourceType === "image" && loadedImage) {
-      renderer.setImage(loadedImage, getSourceScale());
+      setSourceForAllRenderers(loadedImage, getSourceScale());
       markPreviewDirty();
     }
   }
@@ -1298,13 +1388,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       const video = loadedVideo.video;
       frameSeconds = stillMode ? previewTargetSeconds : video.currentTime;
       await seekVideo(video, frameSeconds);
-      renderer.setImage(video, getSourceScale());
+      setSourceForAllRenderers(video, getSourceScale());
     } else if (loadedImage) {
-      renderer.setImage(loadedImage, getSourceScale());
+      setSourceForAllRenderers(loadedImage, getSourceScale());
     }
 
     const frameIndex = Math.max(0, Math.floor(frameSeconds * fps));
-    renderer.render(targetCtx, width, height, frameSeconds, params, frameIndex, fps);
+    renderWithFallback(targetCtx, width, height, frameSeconds, params, frameIndex, fps);
 
     if (targetCtx === ctx) {
       previewFrameSeconds = frameSeconds;
@@ -1566,7 +1656,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (signal?.aborted) {
       throw new DOMException("The operation was aborted.", "AbortError");
     }
-    renderer.render(ctx, canvas.width, canvas.height, frameSeconds, readParams(), Math.max(0, Math.floor(frameSeconds * (Number(document.getElementById("fps").value) || 30))), Number(document.getElementById("fps").value) || 30);
+    renderWithFallback(ctx, canvas.width, canvas.height, frameSeconds, readParams(), Math.max(0, Math.floor(frameSeconds * (Number(document.getElementById("fps").value) || 30))), Number(document.getElementById("fps").value) || 30);
     const stillFormat = document.getElementById("stillFormat").value === "jpeg" ? "jpeg" : "png";
     const mimeType = stillFormat === "jpeg" ? "image/jpeg" : "image/png";
     const jpegQualityRaw = Number(document.getElementById("stillJpegQuality").value);
@@ -1646,7 +1736,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
             canvas.width = videoRef.video.videoWidth;
             canvas.height = videoRef.video.videoHeight;
             await seekVideo(videoRef.video, 0);
-            renderer.setImage(videoRef.video, getSourceScale());
+            setSourceForAllRenderers(videoRef.video, getSourceScale());
           } else {
             const imageRef = await loadImageFromFile(item.file);
             source = { type: "image", imageRef };
@@ -1656,7 +1746,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
             hasLoadedSource = true;
             canvas.width = imageRef.naturalWidth || imageRef.width;
             canvas.height = imageRef.naturalHeight || imageRef.height;
-            renderer.setImage(imageRef, getSourceScale());
+            setSourceForAllRenderers(imageRef, getSourceScale());
           }
 
           const mode = getBatchItemMode(item);
@@ -1669,7 +1759,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           } else if (selectedFormat === "webm" || (includeOriginalAudio && source.type === "video")) {
             await exportWebmRealtime({
               canvas,
-              renderer,
+              renderer: exportRendererProxy,
               params: readParams(),
               fps,
               duration,
@@ -1688,14 +1778,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           } else {
             await exportMp4({
               canvas,
-              renderer,
+              renderer: exportRendererProxy,
               params: readParams(),
               fps,
               duration,
               beforeRenderFrame: source.type === "video"
                 ? async (t) => {
                     await seekVideo(source.videoRef.video, t);
-                    renderer.setImage(source.videoRef.video, getSourceScale());
+                    setSourceForAllRenderers(source.videoRef.video, getSourceScale());
                   }
                 : null,
               onProgress: (value) => {
@@ -1761,7 +1851,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           seekVideo(video, previewTargetSeconds)
             .then(() => {
               previewFrameSeconds = previewTargetSeconds;
-              renderer.setImage(video, getSourceScale());
+              setSourceForAllRenderers(video, getSourceScale());
               markPreviewDirty();
             })
             .catch((error) => {
@@ -1774,7 +1864,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         const minInterval = 1000 / previewFps;
         if (now - lastPreviewTick >= minInterval) {
           lastPreviewTick = now;
-          renderer.setImage(video, getSourceScale());
+          setSourceForAllRenderers(video, getSourceScale());
           previewFrameSeconds = video.currentTime;
           markPreviewDirty();
           previewTargetSeconds = previewFrameSeconds;
@@ -1830,7 +1920,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       if (file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name)) {
         const videoSource = await loadVideoFromFile(file);
         progressEl.value = 0.4;
-        renderer.setImage(videoSource.video, getSourceScale());
+        setSourceForAllRenderers(videoSource.video, getSourceScale());
         loadedVideo = videoSource;
         loadedSourceType = "video";
 
@@ -1850,7 +1940,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         const imageSource = await loadImageFromFile(file);
         progressEl.value = 0.4;
         loadedImage = imageSource;
-        renderer.setImage(imageSource, getSourceScale());
+        setSourceForAllRenderers(imageSource, getSourceScale());
         loadedSourceType = "image";
         previewTargetSeconds = 0;
         previewFrameSeconds = 0;
@@ -1863,6 +1953,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
       progressEl.value = 1;
       hasLoadedSource = true;
+      await runConsistencyCheck();
       setExportAvailability();
       start = performance.now();
     } catch (error) {
@@ -2005,44 +2096,50 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         setStatus("Audio passthrough requires WebM realtime export. Switching format for this render.", "warn");
       }
 
-      if (selectedFormat === "webm" || mustUseRealtimeAudio) {
-        await exportWebmRealtime({
-          canvas,
-          renderer,
-          params: readParams(),
-          fps,
-          duration,
-          loadedSourceType,
-          loadedVideo,
-          loadedImage,
-          sourceScale: getSourceScale,
-          includeAudio: includeOriginalAudio,
-          onProgress: (value, current, total) => {
-            progressEl.value = value;
-            setStatus(`Realtime export frame ${current}/${total}`, "info");
-          },
-          signal: activeExportController.signal,
-        });
-      } else {
-        await exportMp4({
-          canvas,
-          renderer,
-          params: readParams(),
-          fps,
-          duration,
-          beforeRenderFrame: loadedSourceType === "video" && loadedVideo
-            ? async (t) => {
-                await seekVideo(loadedVideo.video, t);
-                renderer.setImage(loadedVideo.video, getSourceScale());
-              }
-            : null,
-          onProgress: (value, current, total) => {
-            progressEl.value = value;
-            setStatus(`Encoding frame ${current}/${total}`, "info");
-          },
-          signal: activeExportController.signal,
-          bitrateScale: qualityMultiplier,
-        });
+      const canUseOffscreen = !(selectedFormat === "webm" || mustUseRealtimeAudio);
+      const renderTargetCanvas = getRenderTargetCanvas(canvas.width, canvas.height, { preferOffscreen: canUseOffscreen });
+      try {
+        if (selectedFormat === "webm" || mustUseRealtimeAudio) {
+          await exportWebmRealtime({
+            canvas: renderTargetCanvas,
+            renderer: exportRendererProxy,
+            params: readParams(),
+            fps,
+            duration,
+            loadedSourceType,
+            loadedVideo,
+            loadedImage,
+            sourceScale: getSourceScale,
+            includeAudio: includeOriginalAudio,
+            onProgress: (value, current, total) => {
+              progressEl.value = value;
+              setStatus(`Realtime export frame ${current}/${total}`, "info");
+            },
+            signal: activeExportController.signal,
+          });
+        } else {
+          await exportMp4({
+            canvas: renderTargetCanvas,
+            renderer: exportRendererProxy,
+            params: readParams(),
+            fps,
+            duration,
+            beforeRenderFrame: loadedSourceType === "video" && loadedVideo
+              ? async (t) => {
+                  await seekVideo(loadedVideo.video, t);
+                  setSourceForAllRenderers(loadedVideo.video, getSourceScale());
+                }
+              : null,
+            onProgress: (value, current, total) => {
+              progressEl.value = value;
+              setStatus(`Encoding frame ${current}/${total}`, "info");
+            },
+            signal: activeExportController.signal,
+            bitrateScale: qualityMultiplier,
+          });
+        }
+      } finally {
+        releaseRenderTargetCanvas(renderTargetCanvas);
       }
       setStatus("Export finished. Download should begin automatically.", "success");
     } catch (error) {
@@ -2223,6 +2320,19 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     setupRangeWithNumber(id);
   }
 
+  renderEngineControl = setupSelectionBox("renderEngine", {
+    onChange: () => {
+      applyRendererSelection({ announce: true });
+      markPreviewDirty();
+      progressEl.value = 0;
+    },
+  });
+  if (!gpuSupported) {
+    const gpuButton = document.querySelector("#renderEngine button[data-value=\"gpu\"]");
+    if (gpuButton) gpuButton.disabled = true;
+  }
+  applyRendererSelection({ announce: false });
+
   previewModeControl = setupSelectionBox("previewMode", {
     onChange: () => {
       if (isStillPreviewMode()) {
@@ -2296,6 +2406,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
 
   if (!hasUrlState) {
+    if (!gpuSupported) {
+      setStatus("GPU renderer unavailable in this browser. Using CPU fallback.", "warn");
+    }
+
     setStatus("Load an image or video (MP4/WebM/MOV/etc.) to begin.", "info");
   }
   requestAnimationFrame(animate);
