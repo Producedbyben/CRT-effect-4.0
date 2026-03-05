@@ -486,11 +486,30 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   downloadBlob(blob, `crt-export-${Date.now()}.mp4`);
 }
 
-function getSupportedWebmMimeType(withAudio) {
-  const candidates = withAudio
+function getWebmMimeCandidates(withAudio) {
+  return withAudio
     ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
     : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
+}
+
+function createWebmRecorder(stream, { preferAudio, videoBitsPerSecond }) {
+  const candidates = getWebmMimeCandidates(preferAudio)
+    .concat(getWebmMimeCandidates(false))
+    .filter((type, index, arr) => arr.indexOf(type) === index);
+
+  let lastError = null;
+  for (const mimeType of candidates) {
+    if (!MediaRecorder.isTypeSupported(mimeType)) continue;
+    try {
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
+      return { recorder, mimeType };
+    } catch (error) {
+      lastError = error;
+      console.warn(`MediaRecorder initialization failed for ${mimeType}; trying fallback.`, error);
+    }
+  }
+
+  throw lastError || new Error("No supported WebM recorder configuration is available.");
 }
 
 async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio }) {
@@ -502,6 +521,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const stream = canvas.captureStream(fps);
   const sourceVideo = loadedSourceType === "video" ? loadedVideo?.video : null;
   const wantsAudio = includeAudio && !!sourceVideo;
+  let shouldRunRealtimeVideo = false;
+  let restoreMuted = null;
 
   if (wantsAudio) {
     try {
@@ -509,16 +530,18 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       const audioTrack = mediaStream?.getAudioTracks?.()[0];
       if (audioTrack) {
         stream.addTrack(audioTrack);
+        shouldRunRealtimeVideo = true;
+      } else {
+        console.warn("No audio track was detected from source video capture stream; exporting without original audio.");
       }
     } catch (error) {
       console.warn("Couldn't capture original audio track; exporting without audio.", error);
     }
   }
 
-  const mimeType = getSupportedWebmMimeType(wantsAudio);
   const chunks = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType,
+  const { recorder, mimeType } = createWebmRecorder(stream, {
+    preferAudio: shouldRunRealtimeVideo,
     videoBitsPerSecond: getTargetBitrate(width, height, fps),
   });
 
@@ -530,43 +553,75 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     recorder.addEventListener("stop", resolve, { once: true });
   });
 
-  recorder.start(250);
+  let recorderStarted = false;
 
-  if (sourceVideo) {
-    await seekVideo(sourceVideo, 0);
-    sourceVideo.pause();
-  }
+  try {
+    recorder.start(250);
+    recorderStarted = true;
 
-  const start = performance.now();
-  for (let frame = 0; frame < totalFrames; frame++) {
-    if (signal?.aborted) {
-      recorder.stop();
-      throw new DOMException("The operation was aborted.", "AbortError");
+    if (sourceVideo && !shouldRunRealtimeVideo) {
+      await seekVideo(sourceVideo, 0);
+      sourceVideo.pause();
     }
 
-    const t = frame / fps;
+    if (shouldRunRealtimeVideo) {
+      restoreMuted = sourceVideo.muted;
+      sourceVideo.muted = false;
+      await seekVideo(sourceVideo, 0);
+      try {
+        await sourceVideo.play();
+      } catch (error) {
+        shouldRunRealtimeVideo = false;
+        console.warn("Realtime video playback failed; continuing export without original audio.", error);
+        sourceVideo.muted = restoreMuted;
+      }
+    }
+
+    const start = performance.now();
+    for (let frame = 0; frame < totalFrames; frame++) {
+      if (signal?.aborted) {
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }
+
+      const t = shouldRunRealtimeVideo
+        ? Math.min(sourceVideo.currentTime, Math.max(0, duration - 1 / fps))
+        : frame / fps;
+      if (sourceVideo && !shouldRunRealtimeVideo) {
+        await seekVideo(sourceVideo, t);
+        renderer.setImage(sourceVideo, sourceScale());
+      } else if (sourceVideo) {
+        renderer.setImage(sourceVideo, sourceScale());
+      } else if (loadedImage) {
+        renderer.setImage(loadedImage, sourceScale());
+      }
+
+      renderer.render(ctx, width, height, t, params, frame, fps);
+      onProgress?.((frame + 1) / totalFrames, frame + 1, totalFrames);
+
+      const nextFrameAt = start + ((frame + 1) * 1000) / fps;
+      const delay = Math.max(0, nextFrameAt - performance.now());
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  } finally {
     if (sourceVideo) {
-      await seekVideo(sourceVideo, t);
-      renderer.setImage(sourceVideo, sourceScale());
-    } else if (loadedImage) {
-      renderer.setImage(loadedImage, sourceScale());
+      sourceVideo.pause();
+      if (restoreMuted !== null) {
+        sourceVideo.muted = restoreMuted;
+      }
     }
 
-    renderer.render(ctx, width, height, t, params, frame, fps);
-    onProgress?.((frame + 1) / totalFrames, frame + 1, totalFrames);
-
-    const nextFrameAt = start + ((frame + 1) * 1000) / fps;
-    const delay = Math.max(0, nextFrameAt - performance.now());
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    if (recorderStarted && recorder.state !== "inactive") {
+      recorder.stop();
     }
-  }
+    if (recorderStarted) {
+      await stopPromise;
+    }
 
-  recorder.stop();
-  await stopPromise;
-
-  for (const track of stream.getTracks()) {
-    track.stop();
+    for (const track of stream.getTracks()) {
+      track.stop();
+    }
   }
 
   const blob = new Blob(chunks, { type: mimeType });
@@ -1073,7 +1128,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const frame = Math.floor(elapsed * fps);
     const stillMode = isStillPreviewMode();
 
-    if (loadedSourceType === "video" && loadedVideo?.video) {
+    if (!isExporting && loadedSourceType === "video" && loadedVideo?.video) {
       const video = loadedVideo.video;
       syncVideoPlaybackState();
       if (isStillPreviewMode()) {
