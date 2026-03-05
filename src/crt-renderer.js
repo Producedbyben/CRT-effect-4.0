@@ -159,7 +159,7 @@ export class CRTRenderer {
     this.maskPattern = ctx.createPattern(this.maskCanvas, "repeat");
   }
 
-  passScanlineAndMask(outCtx, width, height, params) {
+  passScanlineAndMask(outCtx, width, height, params, frameIndex = 0) {
     const scan = params.scanlineStrength;
     const mask = params.phosphorMask;
 
@@ -179,7 +179,7 @@ export class CRTRenderer {
     const interlace = params.advancedInterlacing || 0;
     if (interlace > 0) {
       this.applyLuminanceEffect(outCtx, width, height, (ctx) => {
-        const parity = Math.round(performance.now() / 16) % 2;
+        const parity = frameIndex % 2;
         ctx.fillStyle = `rgba(0,0,0,${(0.18 * interlace).toFixed(3)})`;
         for (let y = parity; y < height; y += 2) ctx.fillRect(0, y, width, 1);
       });
@@ -275,7 +275,7 @@ export class CRTRenderer {
     outCtx.drawImage(this.workCanvas, 0, 0);
     this.buildLuminanceMask(width, height);
 
-    this.passScanlineAndMask(outCtx, width, height, params);
+    this.passScanlineAndMask(outCtx, width, height, params, frameIndex);
     this.passBloom(outCtx, width, height, params);
     this.passTemporalNoise(outCtx, width, height, params, seconds, frameIndex, fps);
     this.passPostProcessing(outCtx, width, height, params, seconds, frameIndex);
