@@ -502,6 +502,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const stream = canvas.captureStream(fps);
   const sourceVideo = loadedSourceType === "video" ? loadedVideo?.video : null;
   const wantsAudio = includeAudio && !!sourceVideo;
+  const shouldRunRealtimeVideo = !!sourceVideo && wantsAudio;
+  let restoreMuted = null;
 
   if (wantsAudio) {
     try {
@@ -532,9 +534,16 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   recorder.start(250);
 
-  if (sourceVideo) {
+  if (sourceVideo && !shouldRunRealtimeVideo) {
     await seekVideo(sourceVideo, 0);
     sourceVideo.pause();
+  }
+
+  if (shouldRunRealtimeVideo) {
+    restoreMuted = sourceVideo.muted;
+    sourceVideo.muted = false;
+    await seekVideo(sourceVideo, 0);
+    await sourceVideo.play();
   }
 
   const start = performance.now();
@@ -544,9 +553,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       throw new DOMException("The operation was aborted.", "AbortError");
     }
 
-    const t = frame / fps;
-    if (sourceVideo) {
+    const t = shouldRunRealtimeVideo
+      ? Math.min(sourceVideo.currentTime, Math.max(0, duration - 1 / fps))
+      : frame / fps;
+    if (sourceVideo && !shouldRunRealtimeVideo) {
       await seekVideo(sourceVideo, t);
+      renderer.setImage(sourceVideo, sourceScale());
+    } else if (sourceVideo) {
       renderer.setImage(sourceVideo, sourceScale());
     } else if (loadedImage) {
       renderer.setImage(loadedImage, sourceScale());
@@ -564,6 +577,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   recorder.stop();
   await stopPromise;
+
+  if (sourceVideo) {
+    sourceVideo.pause();
+    if (restoreMuted !== null) {
+      sourceVideo.muted = restoreMuted;
+    }
+  }
 
   for (const track of stream.getTracks()) {
     track.stop();
@@ -1073,7 +1093,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const frame = Math.floor(elapsed * fps);
     const stillMode = isStillPreviewMode();
 
-    if (loadedSourceType === "video" && loadedVideo?.video) {
+    if (!isExporting && loadedSourceType === "video" && loadedVideo?.video) {
       const video = loadedVideo.video;
       syncVideoPlaybackState();
       if (isStillPreviewMode()) {
