@@ -404,7 +404,11 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   const width = canvas.width;
   const height = canvas.height;
   const totalFrames = Math.max(1, Math.floor(duration * fps));
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+
+  const renderCanvas = document.createElement("canvas");
+  renderCanvas.width = width;
+  renderCanvas.height = height;
+  const ctx = renderCanvas.getContext("2d", { alpha: false });
 
   const target = new ArrayBufferTarget();
   const muxer = new Muxer({
@@ -456,7 +460,7 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     if (beforeRenderFrame) await beforeRenderFrame(t, frame, fps);
     renderer.render(ctx, width, height, t, params, frame, fps);
 
-    const videoFrame = new VideoFrame(canvas, {
+    const videoFrame = new VideoFrame(renderCanvas, {
       timestamp: Math.round((frame * 1_000_000) / fps),
       duration: Math.round(1_000_000 / fps),
     });
