@@ -9,6 +9,25 @@ const FALLBACK_PRESETS = {
     noise: 0.5,
     pixelSize: 1,
     maskScale: 1,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "PVM/BVM": {
     scanlineStrength: 0.25,
@@ -20,6 +39,25 @@ const FALLBACK_PRESETS = {
     noise: 0.16,
     pixelSize: 1,
     maskScale: 1,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   Arcade: {
     scanlineStrength: 0.4,
@@ -31,50 +69,325 @@ const FALLBACK_PRESETS = {
     noise: 0.3,
     pixelSize: 1,
     maskScale: 1,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
-  "Trinitron RGB Monitor": {
-    scanlineStrength: 0.2,
-    phosphorMask: 0.72,
-    barrelDistortion: 0.04,
-    bloom: 0.16,
-    flicker: 0.03,
-    chromaticAberration: 0.06,
-    noise: 0.05,
-    pixelSize: 1,
-    maskScale: 1,
-  },
-  "VHS Composite": {
-    scanlineStrength: 0.48,
-    phosphorMask: 0.28,
-    barrelDistortion: 0.26,
-    bloom: 0.68,
+  "Late-80s Home VHS": {
+    scanlineStrength: 0.52,
+    phosphorMask: 0.26,
+    barrelDistortion: 0.24,
+    bloom: 0.62,
     flicker: 0.16,
-    chromaticAberration: 0.54,
-    noise: 0.34,
+    chromaticAberration: 0.51,
+    noise: 0.33,
     pixelSize: 2,
     maskScale: 1,
+    advancedLineJitter: 0.23,
+    advancedTimebaseWobble: 0.34,
+    advancedHeadSwitching: 0.42,
+    advancedChromaDelay: 0.33,
+    advancedCrossColor: 0.38,
+    advancedDropouts: 0.31,
+    advancedGhosting: 0.29,
+    advancedInterlacing: 0.29,
+    advancedFrameStutter: 0.22,
+    advancedRfInterference: 0.24,
+    advancedExposurePump: 0.19,
+    advancedWhiteBalanceDrift: 0.21,
+    advancedFocusBreathing: 0.18,
+    advancedTapeCrease: 0.2,
+    advancedTimestampOSD: 0.54,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
-  "Portable CRT": {
-    scanlineStrength: 0.56,
-    phosphorMask: 0.34,
-    barrelDistortion: 0.32,
-    bloom: 0.34,
-    flicker: 0.18,
-    chromaticAberration: 0.26,
-    noise: 0.24,
-    pixelSize: 2,
-    maskScale: 1,
+  "90s Rental Tape (3rd Gen Dub)": {
+    scanlineStrength: 0.59,
+    phosphorMask: 0.2,
+    barrelDistortion: 0.28,
+    bloom: 0.7,
+    flicker: 0.2,
+    chromaticAberration: 0.62,
+    noise: 0.45,
+    pixelSize: 3,
+    maskScale: 1.2,
+    advancedLineJitter: 0.31,
+    advancedTimebaseWobble: 0.44,
+    advancedHeadSwitching: 0.56,
+    advancedChromaDelay: 0.46,
+    advancedCrossColor: 0.54,
+    advancedDropouts: 0.49,
+    advancedGhosting: 0.43,
+    advancedInterlacing: 0.38,
+    advancedFrameStutter: 0.44,
+    advancedRfInterference: 0.34,
+    advancedExposurePump: 0.26,
+    advancedWhiteBalanceDrift: 0.24,
+    advancedFocusBreathing: 0.24,
+    advancedTapeCrease: 0.37,
+    advancedTimestampOSD: 0.62,
+    advancedOSDStyle: 2,
+    advancedCctvMonochrome: 0.05,
+    advancedQuantization: 0.18,
+    advancedGenerationLoss: 0.72,
   },
-  "Late-Night Broadcast": {
-    scanlineStrength: 0.35,
-    phosphorMask: 0.42,
-    barrelDistortion: 0.16,
-    bloom: 0.5,
-    flicker: 0.12,
-    chromaticAberration: 0.22,
+  "Hi8 Vacation Cam": {
+    scanlineStrength: 0.41,
+    phosphorMask: 0.32,
+    barrelDistortion: 0.15,
+    bloom: 0.46,
+    flicker: 0.11,
+    chromaticAberration: 0.24,
     noise: 0.2,
+    pixelSize: 2,
+    maskScale: 1,
+    advancedLineJitter: 0.09,
+    advancedTimebaseWobble: 0.16,
+    advancedHeadSwitching: 0.21,
+    advancedChromaDelay: 0.24,
+    advancedCrossColor: 0.22,
+    advancedDropouts: 0.16,
+    advancedGhosting: 0.24,
+    advancedInterlacing: 0.26,
+    advancedFrameStutter: 0.11,
+    advancedRfInterference: 0.16,
+    advancedExposurePump: 0.23,
+    advancedWhiteBalanceDrift: 0.31,
+    advancedFocusBreathing: 0.17,
+    advancedTapeCrease: 0.12,
+    advancedTimestampOSD: 0.47,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+  },
+  "MiniDV Family Cam (2002)": {
+    scanlineStrength: 0.3,
+    phosphorMask: 0.44,
+    barrelDistortion: 0.1,
+    bloom: 0.32,
+    flicker: 0.08,
+    chromaticAberration: 0.17,
+    noise: 0.19,
+    pixelSize: 2,
+    maskScale: 1,
+    advancedLineJitter: 0.05,
+    advancedTimebaseWobble: 0.11,
+    advancedHeadSwitching: 0.08,
+    advancedChromaDelay: 0.12,
+    advancedCrossColor: 0.15,
+    advancedDropouts: 0.12,
+    advancedGhosting: 0.18,
+    advancedInterlacing: 0.36,
+    advancedFrameStutter: 0.12,
+    advancedRfInterference: 0.12,
+    advancedExposurePump: 0.28,
+    advancedWhiteBalanceDrift: 0.22,
+    advancedFocusBreathing: 0.12,
+    advancedTapeCrease: 0.08,
+    advancedTimestampOSD: 0.51,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+  },
+  "Off-Air Analog Broadcast": {
+    scanlineStrength: 0.45,
+    phosphorMask: 0.38,
+    barrelDistortion: 0.21,
+    bloom: 0.52,
+    flicker: 0.14,
+    chromaticAberration: 0.37,
+    noise: 0.28,
     pixelSize: 1,
     maskScale: 1,
+    advancedLineJitter: 0.2,
+    advancedTimebaseWobble: 0.28,
+    advancedHeadSwitching: 0.06,
+    advancedChromaDelay: 0.24,
+    advancedCrossColor: 0.31,
+    advancedDropouts: 0.2,
+    advancedGhosting: 0.19,
+    advancedInterlacing: 0.24,
+    advancedFrameStutter: 0.18,
+    advancedRfInterference: 0.41,
+    advancedExposurePump: 0.21,
+    advancedWhiteBalanceDrift: 0.14,
+    advancedFocusBreathing: 0.11,
+    advancedTapeCrease: 0.19,
+    advancedTimestampOSD: 0.38,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+  },
+  "Public Access Archive": {
+    scanlineStrength: 0.43,
+    phosphorMask: 0.34,
+    barrelDistortion: 0.18,
+    bloom: 0.48,
+    flicker: 0.13,
+    chromaticAberration: 0.33,
+    noise: 0.31,
+    pixelSize: 2,
+    maskScale: 1,
+    advancedLineJitter: 0.15,
+    advancedTimebaseWobble: 0.23,
+    advancedHeadSwitching: 0.12,
+    advancedChromaDelay: 0.28,
+    advancedCrossColor: 0.36,
+    advancedDropouts: 0.27,
+    advancedGhosting: 0.26,
+    advancedInterlacing: 0.31,
+    advancedFrameStutter: 0.23,
+    advancedRfInterference: 0.29,
+    advancedExposurePump: 0.25,
+    advancedWhiteBalanceDrift: 0.2,
+    advancedFocusBreathing: 0.15,
+    advancedTapeCrease: 0.22,
+    advancedTimestampOSD: 0.68,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+  },
+  "Early Web Rip (2006)": {
+    scanlineStrength: 0.37,
+    phosphorMask: 0.28,
+    barrelDistortion: 0.1,
+    bloom: 0.27,
+    flicker: 0.06,
+    chromaticAberration: 0.2,
+    noise: 0.3,
+    pixelSize: 4,
+    maskScale: 1.3,
+    advancedLineJitter: 0.06,
+    advancedTimebaseWobble: 0.08,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0.18,
+    advancedCrossColor: 0.22,
+    advancedDropouts: 0.14,
+    advancedGhosting: 0.2,
+    advancedInterlacing: 0.14,
+    advancedFrameStutter: 0.36,
+    advancedRfInterference: 0.08,
+    advancedExposurePump: 0.06,
+    advancedWhiteBalanceDrift: 0.09,
+    advancedFocusBreathing: 0.08,
+    advancedTapeCrease: 0.05,
+    advancedTimestampOSD: 0.31,
+    advancedOSDStyle: 1,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0.74,
+    advancedGenerationLoss: 0.43,
+  },
+  "Security Camera Dump": {
+    scanlineStrength: 0.46,
+    phosphorMask: 0.22,
+    barrelDistortion: 0.06,
+    bloom: 0.22,
+    flicker: 0.09,
+    chromaticAberration: 0.14,
+    noise: 0.41,
+    pixelSize: 5,
+    maskScale: 1.5,
+    advancedLineJitter: 0.18,
+    advancedTimebaseWobble: 0.17,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0.16,
+    advancedCrossColor: 0.18,
+    advancedDropouts: 0.33,
+    advancedGhosting: 0.15,
+    advancedInterlacing: 0.28,
+    advancedFrameStutter: 0.52,
+    advancedRfInterference: 0.19,
+    advancedExposurePump: 0.12,
+    advancedWhiteBalanceDrift: 0.08,
+    advancedFocusBreathing: 0.09,
+    advancedTapeCrease: 0.18,
+    advancedTimestampOSD: 0.76,
+    advancedOSDStyle: 3,
+    advancedCctvMonochrome: 0.86,
+    advancedQuantization: 0.66,
+    advancedGenerationLoss: 0.38,
+  },
+  "Bootleg Concert Cam": {
+    scanlineStrength: 0.55,
+    phosphorMask: 0.24,
+    barrelDistortion: 0.26,
+    bloom: 0.76,
+    flicker: 0.24,
+    chromaticAberration: 0.58,
+    noise: 0.52,
+    pixelSize: 3,
+    maskScale: 1,
+    advancedLineJitter: 0.34,
+    advancedTimebaseWobble: 0.41,
+    advancedHeadSwitching: 0.35,
+    advancedChromaDelay: 0.4,
+    advancedCrossColor: 0.42,
+    advancedDropouts: 0.45,
+    advancedGhosting: 0.39,
+    advancedInterlacing: 0.33,
+    advancedFrameStutter: 0.42,
+    advancedRfInterference: 0.37,
+    advancedExposurePump: 0.43,
+    advancedWhiteBalanceDrift: 0.33,
+    advancedFocusBreathing: 0.4,
+    advancedTapeCrease: 0.39,
+    advancedTimestampOSD: 0.57,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+  },
+  "Damaged Archive Recovery": {
+    scanlineStrength: 0.49,
+    phosphorMask: 0.27,
+    barrelDistortion: 0.19,
+    bloom: 0.58,
+    flicker: 0.18,
+    chromaticAberration: 0.46,
+    noise: 0.47,
+    pixelSize: 3,
+    maskScale: 1.1,
+    advancedLineJitter: 0.29,
+    advancedTimebaseWobble: 0.36,
+    advancedHeadSwitching: 0.28,
+    advancedChromaDelay: 0.37,
+    advancedCrossColor: 0.4,
+    advancedDropouts: 0.57,
+    advancedGhosting: 0.34,
+    advancedInterlacing: 0.3,
+    advancedFrameStutter: 0.34,
+    advancedRfInterference: 0.46,
+    advancedExposurePump: 0.29,
+    advancedWhiteBalanceDrift: 0.35,
+    advancedFocusBreathing: 0.31,
+    advancedTapeCrease: 0.52,
+    advancedTimestampOSD: 0.81,
+    advancedOSDStyle: 2,
+    advancedCctvMonochrome: 0.24,
+    advancedQuantization: 0.4,
+    advancedGenerationLoss: 0.79,
   },
 };
 
@@ -182,6 +495,32 @@ class CRTRenderer {
     const pixelInfluence = 1 + (pixelSize - 1) * 0.22;
     const pixelStepX = width > 1 ? 1 / (width - 1) : 0;
     const pixelStepY = height > 1 ? 1 / (height - 1) : 0;
+    const frameSeconds = frameIndex / fps;
+
+    const lineJitter = Math.max(0, Math.min(1, Number(params.advancedLineJitter) || 0));
+    const timebaseWobble = Math.max(0, Math.min(1, Number(params.advancedTimebaseWobble) || 0));
+    const headSwitching = Math.max(0, Math.min(1, Number(params.advancedHeadSwitching) || 0));
+    const chromaDelay = Math.max(0, Math.min(1, Number(params.advancedChromaDelay) || 0));
+    const crossColor = Math.max(0, Math.min(1, Number(params.advancedCrossColor) || 0));
+    const dropouts = Math.max(0, Math.min(1, Number(params.advancedDropouts) || 0));
+    const ghosting = Math.max(0, Math.min(1, Number(params.advancedGhosting) || 0));
+    const interlacing = Math.max(0, Math.min(1, Number(params.advancedInterlacing) || 0));
+    const frameStutter = Math.max(0, Math.min(1, Number(params.advancedFrameStutter) || 0));
+    const rfInterference = Math.max(0, Math.min(1, Number(params.advancedRfInterference) || 0));
+    const exposurePump = Math.max(0, Math.min(1, Number(params.advancedExposurePump) || 0));
+    const whiteBalanceDrift = Math.max(0, Math.min(1, Number(params.advancedWhiteBalanceDrift) || 0));
+    const focusBreathing = Math.max(0, Math.min(1, Number(params.advancedFocusBreathing) || 0));
+    const tapeCrease = Math.max(0, Math.min(1, Number(params.advancedTapeCrease) || 0));
+    const timestampOSD = Math.max(0, Math.min(1, Number(params.advancedTimestampOSD) || 0));
+    const osdStyle = Math.max(0, Math.min(3, Math.round(Number(params.advancedOSDStyle) || 0)));
+    const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
+    const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
+    const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
+
+    const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
+    const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
+    const temporalFrame = stutterHoldFrames > 0 ? stutteredFrame : frameIndex;
+    const temporalSeconds = temporalFrame / fps;
 
     for (let y = 0; y < height; y++) {
       const ny = (y / (height - 1)) * 2 - 1;
@@ -194,7 +533,14 @@ class CRTRenderer {
         const r2 = nx * nx + ny * ny;
         const warpCurve = 0.22 + 0.78 * r2;
         const warp = Math.max(0.35, 1 + barrel * warpCurve);
-        const srcNx = nx / warp;
+        const wobble = Math.sin((ny + temporalSeconds * 0.9) * Math.PI * 6) * timebaseWobble * 0.012;
+        const perLineJitter = (seededNoise(y, temporalFrame * 0.07, 7) - 0.5) * lineJitter * 0.018;
+        const baseHeadSwitching = ny > 0.84 ? headSwitching * (ny - 0.84) * 0.14 : 0;
+        const creaseCenter = seededNoise(Math.floor(temporalSeconds * 0.67), 19, 11);
+        const creaseDistance = Math.abs(y / Math.max(1, height - 1) - creaseCenter);
+        const creaseWarp = tapeCrease > 0 ? Math.max(0, 1 - creaseDistance / 0.045) * tapeCrease * (0.015 + seededNoise(temporalFrame, y, 41) * 0.02) : 0;
+
+        const srcNx = nx / warp + wobble + perLineJitter + baseHeadSwitching + creaseWarp;
         const srcNy = ny / warp;
         const u = srcNx * 0.5 + 0.5;
         const v = srcNy * 0.5 + 0.5;
@@ -214,13 +560,15 @@ class CRTRenderer {
         const qu = Math.max(0, Math.min(1, qx / width));
         const qv = Math.max(0, Math.min(1, qy / height));
 
-        const ru = qu + edgeShift * (0.7 + Math.abs(nx));
-        const gu = qu;
-        const bu = qu - edgeShift * (0.7 + Math.abs(nx));
+        const delayShift = chromaDelay * 0.02 * (seededNoise(y, temporalSeconds * 1.3, 23) - 0.2);
+        const crossColorShift = crossColor * 0.012 * Math.sin((y + temporalSeconds * 60) * 0.08);
+        const ru = qu + edgeShift * (0.7 + Math.abs(nx)) + delayShift;
+        const gu = qu + crossColorShift * 0.45;
+        const bu = qu - edgeShift * (0.7 + Math.abs(nx)) - delayShift;
 
-        const red = this.sampleBilinear(srcData, width, height, ru, qv, 0)
-        const green = this.sampleBilinear(srcData, width, height, gu, qv, 1)
-        const blue = this.sampleBilinear(srcData, width, height, bu, qv, 2)
+        const red = this.sampleBilinear(srcData, width, height, ru, qv, 0);
+        const green = this.sampleBilinear(srcData, width, height, gu, qv, 1);
+        const blue = this.sampleBilinear(srcData, width, height, bu, qv, 2);
 
         const redHoriz =
           this.sampleBilinear(srcData, width, height, ru - pixelStepX, qv, 0) * 0.5 +
@@ -260,9 +608,14 @@ class CRTRenderer {
         const greenSoft = green * (1 - blend) + (greenHoriz * 0.62 + greenVert * 0.38) * blend;
         const blueSoft = blue * (1 - blend) + (blueHoriz * 0.62 + blueVert * 0.38) * blend;
 
-        dstData[outIndex] = Math.min(255, Math.max(0, redSoft * scanlineGain * rMask + dither));
-        dstData[outIndex + 1] = Math.min(255, Math.max(0, greenSoft * scanlineGain * gMask + dither));
-        dstData[outIndex + 2] = Math.min(255, Math.max(0, blueSoft * scanlineGain * bMask + dither));
+        const dropoutNoise = seededNoise(x * 0.5, y + temporalFrame * 0.27, 31);
+        const dropoutGate = dropoutNoise > 0.988 - dropouts * 0.08 ? 1 - dropouts * (0.35 + seededNoise(y, temporalFrame, 59) * 0.5) : 1;
+        const interlaceGate = interlacing > 0 ? 1 - interlacing * (((y + temporalFrame) & 1) ? 0.14 : 0.02) : 1;
+        const level = scanlineGain * dropoutGate * interlaceGate;
+
+        dstData[outIndex] = Math.min(255, Math.max(0, redSoft * level * rMask + dither));
+        dstData[outIndex + 1] = Math.min(255, Math.max(0, greenSoft * level * gMask + dither));
+        dstData[outIndex + 2] = Math.min(255, Math.max(0, blueSoft * level * bMask + dither));
         dstData[outIndex + 3] = 255;
       }
     }
@@ -271,6 +624,54 @@ class CRTRenderer {
     outCtx.imageSmoothingEnabled = true;
     outCtx.imageSmoothingQuality = "high";
     outCtx.drawImage(this.workCanvas, 0, 0);
+
+    if (ghosting > 0) {
+      const ghostShift = Math.round((0.5 + ghosting * 3.5) * Math.sin(temporalSeconds * 1.7));
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.42, ghosting * 0.45);
+      outCtx.drawImage(this.workCanvas, ghostShift, 0);
+      outCtx.restore();
+    }
+
+    if (focusBreathing > 0) {
+      const breathWave = Math.sin(temporalSeconds * 1.17 + 1.3) * 0.5 + 0.5;
+      const blurPx = (0.2 + breathWave * 1.8) * focusBreathing;
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.55, focusBreathing * 0.6);
+      outCtx.filter = `blur(${blurPx.toFixed(2)}px)`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+    }
+
+    if (generationLoss > 0) {
+      const dubPasses = Math.max(1, Math.floor(1 + generationLoss * 3));
+      for (let i = 0; i < dubPasses; i++) {
+        const shift = Math.round((i + 1) * (0.5 + generationLoss * 1.8));
+        const sat = Math.max(0.25, 1 - generationLoss * (0.26 + i * 0.07));
+        const contrast = Math.max(0.65, 1 - generationLoss * (0.12 + i * 0.04));
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.34, 0.11 + generationLoss * 0.2);
+        outCtx.filter = `blur(${(generationLoss * (0.9 + i * 0.45)).toFixed(2)}px) saturate(${sat.toFixed(3)}) contrast(${contrast.toFixed(3)})`;
+        outCtx.drawImage(outCtx.canvas, shift, 0);
+        outCtx.drawImage(outCtx.canvas, -shift, 0);
+        outCtx.restore();
+      }
+    }
+
+    if (cctvMonochrome > 0) {
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.9, 0.2 + cctvMonochrome * 0.7);
+      outCtx.filter = `grayscale(1) contrast(${(1 + cctvMonochrome * 0.22).toFixed(3)}) brightness(${(0.95 + cctvMonochrome * 0.08).toFixed(3)})`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+
+      outCtx.save();
+      outCtx.globalCompositeOperation = "multiply";
+      outCtx.globalAlpha = cctvMonochrome * 0.25;
+      outCtx.fillStyle = "rgb(145 182 148)";
+      outCtx.fillRect(0, 0, width, height);
+      outCtx.restore();
+    }
 
     const bloom = params.bloom;
     if (bloom > 0) {
@@ -304,14 +705,13 @@ class CRTRenderer {
     outCtx.fillStyle = grad;
     outCtx.fillRect(0, 0, width, height);
 
-    const frameSeconds = frameIndex / fps;
-    const flickerWaveA = Math.sin(frameSeconds * Math.PI * 2 * 1.94) * 0.5 + 0.5;
-    const flickerWaveB = Math.sin(frameSeconds * Math.PI * 2 * 0.61 + 1.7) * 0.5 + 0.5;
+    const flickerWaveA = Math.sin(temporalSeconds * Math.PI * 2 * 1.94) * 0.5 + 0.5;
+    const flickerWaveB = Math.sin(temporalSeconds * Math.PI * 2 * 0.61 + 1.7) * 0.5 + 0.5;
     const flicker = params.flicker * (0.4 + 0.6 * (0.65 * flickerWaveA + 0.35 * flickerWaveB));
     outCtx.fillStyle = `rgba(255,255,255,${(flicker * 0.2).toFixed(3)})`;
     outCtx.fillRect(0, 0, width, height);
 
-    const retraceY = ((frameSeconds * 1.45) % 1) * height;
+    const retraceY = ((temporalSeconds * 1.45) % 1) * height;
     const retraceBand = Math.max(6, Math.floor(height * 0.02));
     const retraceGrad = outCtx.createLinearGradient(0, retraceY - retraceBand, 0, retraceY + retraceBand);
     retraceGrad.addColorStop(0, "rgba(255,255,255,0)");
@@ -320,12 +720,46 @@ class CRTRenderer {
     outCtx.fillStyle = retraceGrad;
     outCtx.fillRect(0, retraceY - retraceBand, width, retraceBand * 2);
 
-    const jitterPx = params.flicker * (seededNoise(frameIndex, frameSeconds, 17) - 0.5) * 2.6;
+    const jitterPx = (params.flicker + lineJitter * 0.45) * (seededNoise(temporalFrame, temporalSeconds, 17) - 0.5) * 2.6;
     if (Math.abs(jitterPx) > 0.01) {
       outCtx.save();
-      outCtx.globalAlpha = Math.min(0.14, 0.05 + params.flicker * 0.12);
+      outCtx.globalAlpha = Math.min(0.18, 0.05 + params.flicker * 0.12 + lineJitter * 0.08);
       outCtx.drawImage(outCtx.canvas, jitterPx, 0);
       outCtx.restore();
+    }
+
+    if (rfInterference > 0) {
+      const bandCount = Math.max(1, Math.floor(1 + rfInterference * 5));
+      for (let i = 0; i < bandCount; i++) {
+        const bandPos = seededNoise(i + temporalFrame * 0.17, temporalSeconds, 77);
+        const bandY = Math.floor(bandPos * height);
+        const bandH = Math.max(2, Math.floor(height * (0.004 + rfInterference * 0.018)));
+        const alpha = (0.03 + seededNoise(i, temporalFrame, 78) * 0.12) * rfInterference;
+        outCtx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+        outCtx.fillRect(0, bandY, width, bandH);
+      }
+    }
+
+    if (exposurePump > 0 || whiteBalanceDrift > 0) {
+      const exposureWave = 1 + (Math.sin(temporalSeconds * 1.53) * 0.5 + 0.5) * exposurePump * 0.28;
+      const warmShift = (Math.sin(temporalSeconds * 0.37 + 2.4) * 0.5 + 0.5) * whiteBalanceDrift;
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.35, exposurePump * 0.35);
+      outCtx.filter = `brightness(${exposureWave.toFixed(3)})`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+
+      if (whiteBalanceDrift > 0) {
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.22, 0.05 + whiteBalanceDrift * 0.2);
+        const r = Math.round(30 + warmShift * 70);
+        const g = Math.round(18 + warmShift * 28);
+        const b = Math.round(40 + (1 - warmShift) * 80);
+        outCtx.fillStyle = `rgb(${r} ${g} ${b})`;
+        outCtx.globalCompositeOperation = "screen";
+        outCtx.fillRect(0, 0, width, height);
+        outCtx.restore();
+      }
     }
 
     if (params.noise > 0) {
@@ -333,19 +767,68 @@ class CRTRenderer {
       for (let i = 0; i < count; i++) {
         const x = Math.floor(seededNoise(i, seconds, frameIndex) * width);
         const y = Math.floor(seededNoise(i * 2, seconds + 3.1, frameIndex) * height);
-        const grain = seededNoise(x + frameIndex * 0.3, y, frameIndex);
+        const grain = seededNoise(x + temporalFrame * 0.3, y, temporalFrame);
         const a = (0.02 + grain * 0.28) * params.noise;
         outCtx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
         outCtx.fillRect(x, y, 1, 1);
       }
 
-      const burst = seededNoise(frameIndex, frameSeconds * 10, 91);
+      const burst = seededNoise(temporalFrame, temporalSeconds * 10, 91);
       if (burst > 0.91) {
-        const bandY = Math.floor(seededNoise(frameIndex, burst, 37) * height);
+        const bandY = Math.floor(seededNoise(temporalFrame, burst, 37) * height);
         const bandH = Math.max(3, Math.floor(height * 0.012));
         outCtx.fillStyle = `rgba(255,255,255,${(params.noise * 0.22).toFixed(3)})`;
         outCtx.fillRect(0, bandY, width, bandH);
       }
+    }
+
+    if (quantization > 0) {
+      const levels = Math.max(4, Math.round(64 - quantization * 56));
+      const imageData = outCtx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const inv = 255 / (levels - 1);
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.round((data[i] / 255) * (levels - 1)) * inv;
+        data[i + 1] = Math.round((data[i + 1] / 255) * (levels - 1)) * inv;
+        data[i + 2] = Math.round((data[i + 2] / 255) * (levels - 1)) * inv;
+      }
+      outCtx.putImageData(imageData, 0, 0);
+    }
+
+    if (timestampOSD > 0) {
+      const baseDate = new Date("1998-10-31T22:48:00Z");
+      baseDate.setSeconds(baseDate.getSeconds() + Math.floor(temporalSeconds));
+      const stamp = `${String(baseDate.getUTCMonth() + 1).padStart(2, "0")}/${String(baseDate.getUTCDate()).padStart(2, "0")}/${String(baseDate.getUTCFullYear()).slice(-2)} ${String(baseDate.getUTCHours()).padStart(2, "0")}:${String(baseDate.getUTCMinutes()).padStart(2, "0")}:${String(baseDate.getUTCSeconds()).padStart(2, "0")}`;
+      const flickerAlpha = 0.35 + seededNoise(temporalFrame, temporalSeconds, 113) * 0.45;
+      const osdAlpha = Math.min(0.9, timestampOSD * flickerAlpha);
+      const padX = Math.floor(width * 0.03);
+      const padY = Math.floor(height * 0.95);
+
+      outCtx.save();
+      outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px monospace`;
+      outCtx.textBaseline = "bottom";
+      outCtx.globalAlpha = osdAlpha;
+
+      if (osdStyle === 0) {
+        outCtx.fillStyle = "rgb(255 168 74)";
+        outCtx.fillText(stamp, padX, padY);
+      } else if (osdStyle === 1) {
+        outCtx.fillStyle = "rgb(237 244 255)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillStyle = "rgb(255 58 58)";
+        outCtx.fillText("REC", padX, Math.floor(height * 0.08));
+      } else if (osdStyle === 2) {
+        outCtx.fillStyle = "rgb(122 255 124)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CH 03", Math.floor(width * 0.03), Math.floor(height * 0.09));
+        outCtx.fillText("SP", Math.floor(width * 0.9), Math.floor(height * 0.09));
+      } else {
+        outCtx.fillStyle = "rgb(170 255 170)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CAM 4", Math.floor(width * 0.82), Math.floor(height * 0.09));
+      }
+
+      outCtx.restore();
     }
   }
 }
@@ -630,6 +1113,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedDropouts",
     "advancedGhosting",
     "advancedInterlacing",
+    "advancedFrameStutter",
+    "advancedRfInterference",
+    "advancedExposurePump",
+    "advancedWhiteBalanceDrift",
+    "advancedFocusBreathing",
+    "advancedTapeCrease",
+    "advancedTimestampOSD",
+    "advancedOSDStyle",
+    "advancedCctvMonochrome",
+    "advancedQuantization",
+    "advancedGenerationLoss",
   ];
 
   let hasLoadedSource = false;
@@ -937,11 +1431,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const values = presets[name];
     if (!values) return;
     for (const id of controlIds) {
-      if (typeof values[id] === "number") {
-        const slider = document.getElementById(id);
-        slider.value = values[id];
-        slider.__syncRangeNumber?.();
-      }
+      const slider = document.getElementById(id);
+      const fallbackValue = defaultParamValues && typeof defaultParamValues[id] === "number" ? defaultParamValues[id] : Number(slider.value) || 0;
+      const nextValue = typeof values[id] === "number" ? values[id] : fallbackValue;
+      slider.value = nextValue;
+      slider.__syncRangeNumber?.();
     }
   }
 
