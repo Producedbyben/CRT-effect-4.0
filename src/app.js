@@ -638,6 +638,89 @@ const FALLBACK_PRESETS = {
 
 const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
 
+
+function normalizePresetRecord(entry, index = 0) {
+  const values = entry?.values && typeof entry.values === "object" ? entry.values : entry;
+  const name = String(entry?.name || entry?.id || `Preset ${index + 1}`);
+  return {
+    id: String(entry?.id || name),
+    name,
+    description: entry?.description || "",
+    type: entry?.type || "Experimental",
+    era: entry?.era || "2000s",
+    signalFamily: entry?.signalFamily || "hybrid",
+    damageLevel: entry?.damageLevel || "medium",
+    tags: Array.isArray(entry?.tags) ? entry.tags : [],
+    signalChain: entry?.signalChain || "",
+    historicalContext: entry?.historicalContext || "",
+    sortOrder: Number.isFinite(entry?.sortOrder) ? entry.sortOrder : index,
+    realismScore: Number.isFinite(entry?.realismScore) ? entry.realismScore : 8,
+    values: values && typeof values === "object" ? values : {},
+  };
+}
+
+function inferLegacyPresetMetadata(name, values = {}, index = 0) {
+  const lower = String(name).toLowerCase();
+  let type = "Experimental";
+  if (lower.includes("vhs") || lower.includes("u-matic") || lower.includes("betacam")) type = "VHS";
+  else if (lower.includes("broadcast") || lower.includes("off-air") || lower.includes("public access")) type = "Broadcast";
+  else if (lower.includes("cam") || lower.includes("camcorder") || lower.includes("minidv") || lower.includes("hi8") || lower.includes("video8")) type = "Camcorder";
+  else if (lower.includes("cctv") || lower.includes("security")) type = "CCTV";
+  else if (lower.includes("web") || lower.includes("stream") || lower.includes("youtube") || lower.includes("digital")) type = "Web";
+  else if (lower.includes("film") || lower.includes("technicolor") || lower.includes("super 8") || lower.includes("16mm")) type = "Film";
+  else if (lower.includes("archive") || lower.includes("recovery")) type = "Archive";
+  else if (lower.includes("crt") || lower.includes("pvm") || lower.includes("arcade") || lower.includes("tv")) type = "CRT";
+
+  const eraMatch = lower.match(/(1920s|1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
+  const era = eraMatch ? eraMatch[1] : (lower.includes("late-80") ? "1980s" : (lower.includes("90") ? "1990s" : "2000s"));
+  const digital = (values.advancedQuantization || 0) + (values.advancedMacroBlocking || 0) + (values.advancedGenerationLoss || 0);
+  const analog = (values.advancedHeadSwitching || 0) + (values.advancedTimebaseWobble || 0) + (values.advancedDropouts || 0) + (values.advancedRfInterference || 0);
+  const signalFamily = digital > analog * 1.2 ? "digital" : (analog > digital * 1.2 ? "analog" : "hybrid");
+  const damageMetric = ((values.noise || 0) + (values.advancedDropouts || 0) + (values.advancedGenerationLoss || 0) + (values.advancedMacroBlocking || 0)) / 4;
+  const damageLevel = damageMetric < 0.12 ? "clean" : damageMetric < 0.25 ? "mild" : damageMetric < 0.4 ? "medium" : damageMetric < 0.58 ? "heavy" : "extreme";
+
+  return {
+    id: `legacy-${index + 1}`,
+    name,
+    description: "Legacy preset migrated from original CRT Effect preset pack.",
+    type,
+    era,
+    signalFamily,
+    damageLevel,
+    tags: ["legacy", "migrated"],
+    signalChain: "Original preset from historical CRT-effect preset pack.",
+    historicalContext: "Migrated into normalized preset architecture for backwards compatibility.",
+    sortOrder: 1000 + index,
+    realismScore: 8.0,
+    values,
+  };
+}
+
+async function loadMergedPresetLibrary() {
+  const curated = Array.isArray(window.CRT_PRESET_LIBRARY) ? window.CRT_PRESET_LIBRARY : [];
+  const normalizedCurated = curated.map(normalizePresetRecord);
+  const byName = new Map(normalizedCurated.map((record) => [record.name, record]));
+
+  try {
+    const module = await import("./presets.js");
+    const legacy = module?.PRESETS || {};
+    Object.entries(legacy).forEach(([name, values], index) => {
+      if (byName.has(name)) return;
+      byName.set(name, inferLegacyPresetMetadata(name, values, index));
+    });
+  } catch (error) {
+    console.warn("Could not import presets.js legacy preset pack", error);
+  }
+
+  if (!byName.size) {
+    Object.entries(FALLBACK_PRESETS).forEach(([name, values], index) => {
+      byName.set(name, inferLegacyPresetMetadata(name, values, index));
+    });
+  }
+
+  return Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+}
+
 function seededNoise(x, y, frame) {
   const v = Math.sin(x * 12.9898 + y * 78.233 + frame * 19.17) * 43758.5453;
   return v - Math.floor(v);
@@ -1529,6 +1612,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const downloadStillBtn = document.getElementById("downloadStillBtn");
   const imageInput = document.getElementById("imageInput");
   const presetSelect = document.getElementById("presetSelect");
+  const presetFilterType = document.getElementById("presetFilterType");
+  const presetFilterEra = document.getElementById("presetFilterEra");
+  const presetFilterDamage = document.getElementById("presetFilterDamage");
+  const presetMeta = document.getElementById("presetMeta");
+  const resetPresetBtn = document.getElementById("resetPresetBtn");
   const osdStartDateTimeInput = document.getElementById("osdStartDateTime");
   const osdCountWithExportInput = document.getElementById("osdCountWithExport");
   const osdPrimaryColorInput = document.getElementById("osdPrimaryColor");
@@ -1614,7 +1702,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let loadedSourceType = "image";
   let loadedVideo = null;
   let loadedImage = null;
-  const presets = { ...FALLBACK_PRESETS };
+  let presets = { ...FALLBACK_PRESETS };
+  let presetRecords = Object.entries(FALLBACK_PRESETS).map(([name, values], index) => inferLegacyPresetMetadata(name, values, index));
+  let presetMetaByName = Object.fromEntries(presetRecords.map((record) => [record.name, record]));
+  let presetFilters = { type: "all", era: "all", damageLevel: "all" };
   let start = performance.now();
   let previewFrameSeconds = 0;
   let previewTargetSeconds = 0;
@@ -2460,8 +2551,51 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     presetDirtyTag.hidden = !(changedSliders || changedMask);
   }
 
-  function initializePresets() {
-    const names = Object.keys(presets);
+  function getFilteredPresetNames() {
+    return presetRecords.filter((record) => {
+      if (presetFilters.type !== "all" && record.type !== presetFilters.type) return false;
+      if (presetFilters.era !== "all" && record.era !== presetFilters.era) return false;
+      if (presetFilters.damageLevel !== "all" && record.damageLevel !== presetFilters.damageLevel) return false;
+      return true;
+    }).map((record) => record.name);
+  }
+
+  function renderPresetMeta(name) {
+    if (!presetMeta) return;
+    const meta = presetMetaByName[name];
+    if (!meta) {
+      presetMeta.innerHTML = "";
+      return;
+    }
+    presetMeta.innerHTML = `<strong>${meta.name}</strong><div>${meta.description}</div><div class="preset-meta-tags">${meta.type} · ${meta.era} · ${meta.signalFamily} · ${meta.damageLevel}</div><div>${meta.signalChain}</div><div class="preset-meta-context">${meta.historicalContext}</div><div>Realism score: ${Number(meta.realismScore || 8).toFixed(1)}/10</div>`;
+  }
+
+  function initializePresetFilters() {
+    const buildOptions = (key) => ["all", ...Array.from(new Set(presetRecords.map((record) => record[key]).filter(Boolean)))];
+    const mount = (el, values) => {
+      if (!el) return;
+      el.innerHTML = "";
+      values.forEach((value) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.value = value;
+        button.textContent = value === "all" ? "All" : value;
+        if (value === "all") button.dataset.selected = "true";
+        el.appendChild(button);
+      });
+    };
+
+    mount(presetFilterType, buildOptions("type"));
+    mount(presetFilterEra, buildOptions("era"));
+    mount(presetFilterDamage, buildOptions("damageLevel"));
+
+    setupSelectionBox("presetFilterType", { onChange: (value) => { presetFilters.type = value; initializePresets(activePresetName); } });
+    setupSelectionBox("presetFilterEra", { onChange: (value) => { presetFilters.era = value; initializePresets(activePresetName); } });
+    setupSelectionBox("presetFilterDamage", { onChange: (value) => { presetFilters.damageLevel = value; initializePresets(activePresetName); } });
+  }
+
+  function initializePresets(preferredName = activePresetName) {
+    const names = getFilteredPresetNames();
     presetSelect.innerHTML = "";
 
     if (names.length === 0) {
@@ -2469,6 +2603,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       message.className = "selection-empty";
       message.textContent = "No presets available";
       presetSelect.appendChild(message);
+      renderPresetMeta("");
       return;
     }
 
@@ -2477,9 +2612,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       button.type = "button";
       button.dataset.value = name;
       button.textContent = name;
-      if (name === "Consumer TV") {
-        button.dataset.selected = "true";
-      }
+      if (name === preferredName) button.dataset.selected = "true";
       presetSelect.appendChild(button);
     }
 
@@ -2490,15 +2623,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           presetIntensityInput.__syncRangeNumber?.();
         }
         applyPreset(name, 1);
+        renderPresetMeta(name);
         markPreviewDirty();
         progressEl.value = 0;
         setStatus(`Preset applied: ${name}`, "success");
       },
     });
 
-    const defaultPreset = presets["Consumer TV"] ? "Consumer TV" : names[0];
+    const defaultPreset = names.includes(preferredName) ? preferredName : (names.includes("Consumer TV") ? "Consumer TV" : names[0]);
     presetControl.setValue(defaultPreset, { silent: true });
     applyPreset(defaultPreset, Number(presetIntensityInput?.value || 1));
+    renderPresetMeta(defaultPreset);
     updatePresetDirtyState();
   }
 
@@ -2891,6 +3026,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     resetParameters();
   });
 
+  resetPresetBtn?.addEventListener("click", () => {
+    if (!activePresetName) return;
+    applyPreset(activePresetName, Number(presetIntensityInput?.value || 1));
+    renderPresetMeta(activePresetName);
+    markPreviewDirty();
+    setStatus("Preset baseline restored.", "success");
+  });
+
   resetSourceBtn.addEventListener("click", () => {
     clearLoadedSource();
   });
@@ -3158,6 +3301,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   setExportAvailability();
   loadParameterPolicyState();
   buildMacroPolicyControls();
+
+  loadMergedPresetLibrary().then((records) => {
+    presetRecords = records;
+    presetMetaByName = Object.fromEntries(records.map((record) => [record.name, record]));
+    presets = Object.fromEntries(records.map((record) => [record.name, record.values]));
+    initializePresetFilters();
+    initializePresets(activePresetName);
+    updatePresetDirtyState();
+  });
+
+  initializePresetFilters();
   initializePresets();
   defaultParamValues = readParams();
   updatePreviewControlsState();

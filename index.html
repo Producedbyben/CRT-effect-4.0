@@ -50,7 +50,13 @@
               <label>Preset library</label>
               <span id="presetDirtyTag" class="dirty-tag" hidden>Modified</span>
             </div>
+            <div class="preset-filters">
+              <div class="filter-group"><span>Type</span><div id="presetFilterType" class="selection-box selection-box-wrap compact-filter" role="radiogroup" aria-label="Filter by type"></div></div>
+              <div class="filter-group"><span>Era</span><div id="presetFilterEra" class="selection-box selection-box-wrap compact-filter" role="radiogroup" aria-label="Filter by era"></div></div>
+              <div class="filter-group"><span>Damage</span><div id="presetFilterDamage" class="selection-box selection-box-wrap compact-filter" role="radiogroup" aria-label="Filter by damage level"></div></div>
+            </div>
             <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
+            <div id="presetMeta" class="preset-meta"></div>
             <label>Preset intensity <span class="range-control"><input id="presetIntensity" type="range" min="0" max="1.5" step="0.01" value="1" /></span></label>
             <label>Mask pattern
               <div id="maskType" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Mask pattern">
@@ -66,6 +72,7 @@
             <label>Mask strength <span class="range-control"><input id="phosphorMask" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <div class="actions compact-actions">
               <button id="resetParamsBtn" type="button">Reset look</button>
+              <button id="resetPresetBtn" type="button">Reset preset</button>
             </div>
           </div>
         </section>
@@ -317,6 +324,7 @@
       </aside>
     </main>
 
+    <script src="./src/preset-library.js"></script>
     <script src="./src/app.js"></script>
   </body>
 </html>
