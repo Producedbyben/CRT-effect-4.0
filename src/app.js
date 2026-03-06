@@ -1575,6 +1575,22 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let showOriginalPreview = false;
   let compareLocked = false;
   let activePresetName = null;
+  const EFFECT_PANEL_CONFIGS = {
+    crt: {
+      toggleId: "crtEffectsEnabled",
+      controlIds: ["scanlineStrength", "phosphorMask", "barrelDistortion", "chromaticAberration", "bloom", "flicker", "maskScale"],
+    },
+    digital: {
+      toggleId: "digitalEffectsEnabled",
+      controlIds: ["noise", "advancedFrameStutter", "advancedRfInterference", "advancedCctvMonochrome", "advancedQuantization", "advancedGenerationLoss", "advancedMacroBlocking"],
+    },
+    film: {
+      toggleId: "filmEffectsEnabled",
+      controlIds: ["advancedFilmGrain", "advancedFilmDust", "advancedFilmScratches", "advancedFilmGateWeave", "advancedFilmHalation", "advancedExposurePump", "advancedWhiteBalanceDrift", "advancedFocusBreathing"],
+    },
+  };
+
+  const panelEffectState = Object.fromEntries(Object.keys(EFFECT_PANEL_CONFIGS).map((name) => [name, { enabled: true, savedValues: null }]));
 
   const RANGE_CONTROL_LABELS = {
     scanlineStrength: "Scanline strength",
@@ -1936,6 +1952,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         slider.__syncRangeNumber?.();
       }
     }
+    enforceDisabledEffectPanels();
     sourceScaleControl?.setValue("1", { silent: true });
     if (presetIntensityInput) {
       presetIntensityInput.value = "1";
@@ -2011,6 +2028,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function readParams() {
     const values = Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+    for (const [panelName, config] of Object.entries(EFFECT_PANEL_CONFIGS)) {
+      if (panelEffectState[panelName]?.enabled) continue;
+      for (const id of config.controlIds) values[id] = 0;
+    }
     values.maskType = maskTypeControl?.getValue() || "phosphor";
     return values;
   }
@@ -2062,6 +2083,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       slider.__syncRangeNumber?.();
     }
     maskTypeControl?.setValue(mapped.maskType, { silent: true });
+    enforceDisabledEffectPanels();
     activePresetName = name;
     updatePresetDirtyState();
   }
@@ -2642,6 +2664,85 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
+  function enforceDisabledEffectPanels() {
+    for (const [panelName, config] of Object.entries(EFFECT_PANEL_CONFIGS)) {
+      const state = panelEffectState[panelName];
+      if (!state || state.enabled) continue;
+      for (const id of config.controlIds) {
+        setControlValue(id, 0, { dispatch: false });
+      }
+    }
+  }
+
+  function setControlValue(id, value, { dispatch = true } = {}) {
+    const slider = document.getElementById(id);
+    if (!slider) return;
+    slider.value = String(value);
+    slider.__syncRangeNumber?.();
+    if (dispatch) {
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+      slider.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  function updateEffectPanelVisual(panelName, enabled) {
+    const config = EFFECT_PANEL_CONFIGS[panelName];
+    if (!config) return;
+    const toggle = document.getElementById(config.toggleId);
+    const panel = toggle?.closest(".panel");
+    if (!panel) return;
+    panel.classList.toggle("panel-effects-disabled", !enabled);
+    const labels = panel.querySelectorAll("label");
+    for (const label of labels) {
+      if (label.classList.contains("panel-toggle")) continue;
+      const input = label.querySelector("input");
+      if (!input) continue;
+      input.disabled = !enabled;
+    }
+  }
+
+  function setEffectPanelEnabled(panelName, enabled) {
+    const config = EFFECT_PANEL_CONFIGS[panelName];
+    const state = panelEffectState[panelName];
+    if (!config || !state) return;
+
+    state.enabled = !!enabled;
+    if (!state.enabled) {
+      state.savedValues = Object.fromEntries(config.controlIds.map((id) => [id, Number(document.getElementById(id)?.value || 0)]));
+      for (const id of config.controlIds) {
+        setControlValue(id, 0);
+      }
+      setStatus(`${panelName.toUpperCase()} effects disabled.`, "info");
+    } else {
+      if (state.savedValues) {
+        for (const id of config.controlIds) {
+          if (typeof state.savedValues[id] === "number") {
+            setControlValue(id, state.savedValues[id]);
+          }
+        }
+      }
+      state.savedValues = null;
+      setStatus(`${panelName.toUpperCase()} effects enabled.`, "success");
+    }
+
+    updateEffectPanelVisual(panelName, state.enabled);
+    updatePresetDirtyState();
+    markPreviewDirty();
+    progressEl.value = 0;
+  }
+
+  function setupEffectPanelToggles() {
+    for (const [panelName, config] of Object.entries(EFFECT_PANEL_CONFIGS)) {
+      const toggle = document.getElementById(config.toggleId);
+      if (!toggle) continue;
+      toggle.checked = panelEffectState[panelName].enabled;
+      updateEffectPanelVisual(panelName, panelEffectState[panelName].enabled);
+      toggle.addEventListener("change", () => {
+        setEffectPanelEnabled(panelName, toggle.checked);
+      });
+    }
+  }
+
   function setCompareState(enabled, { lock = compareLocked } = {}) {
     compareLocked = !!lock;
     showOriginalPreview = enabled;
@@ -2681,6 +2782,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (!compareLocked) setCompareState(false, { lock: false });
   });
 
+  setupEffectPanelToggles();
   setupTabs();
 
   setExportAvailability();

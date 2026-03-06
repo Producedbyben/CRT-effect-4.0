@@ -31,6 +31,29 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
   color: #e8eef8;
 }
 .panel-body { padding: 0.7rem; display: grid; gap: 0.5rem; }
+
+.panel-header-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: #b9c8dc;
+}
+
+.panel-toggle input {
+  width: auto;
+}
+
+.panel-effects-disabled .panel-body {
+  opacity: 0.55;
+}
 .panel-hint {
   margin: 0;
   font-size: 0.71rem;
