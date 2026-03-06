@@ -13,7 +13,7 @@ export const PRESETS = {
   "Consumer TV": {
     scanlineStrength: 0.45,
     phosphorMask: 0.36,
-    barrelDistortion: 0.28,
+    barrelDistortion: -0.168,
     bloom: 0.45,
     flicker: 0.1,
     chromaticAberration: 0.3,
@@ -23,7 +23,7 @@ export const PRESETS = {
   "PVM/BVM": {
     scanlineStrength: 0.25,
     phosphorMask: 0.6,
-    barrelDistortion: 0.08,
+    barrelDistortion: -0.048,
     bloom: 0.2,
     flicker: 0.04,
     chromaticAberration: 0.08,
@@ -33,7 +33,7 @@ export const PRESETS = {
   "RF Broadcast": {
     scanlineStrength: 0.42,
     phosphorMask: 0.38,
-    barrelDistortion: 0.24,
+    barrelDistortion: -0.144,
     bloom: 0.48,
     flicker: 0.14,
     chromaticAberration: 0.36,
@@ -50,7 +50,7 @@ export const PRESETS = {
   "VHS EP": {
     scanlineStrength: 0.5,
     phosphorMask: 0.24,
-    barrelDistortion: 0.22,
+    barrelDistortion: -0.132,
     bloom: 0.62,
     flicker: 0.16,
     chromaticAberration: 0.5,
@@ -67,7 +67,7 @@ export const PRESETS = {
   "Hi8 Camcorder": {
     scanlineStrength: 0.38,
     phosphorMask: 0.3,
-    barrelDistortion: 0.14,
+    barrelDistortion: -0.084,
     bloom: 0.42,
     flicker: 0.1,
     chromaticAberration: 0.22,
@@ -84,7 +84,7 @@ export const PRESETS = {
   "Arcade Cabinet": {
     scanlineStrength: 0.44,
     phosphorMask: 0.56,
-    barrelDistortion: 0.2,
+    barrelDistortion: -0.12,
     bloom: 0.58,
     flicker: 0.07,
     chromaticAberration: 0.18,
