@@ -1595,6 +1595,15 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "shapeOverlayContext",
   ];
 
+  const macroTargetIds = [
+    "scanlineStrength", "phosphorMask", "bloom", "flicker", "noise",
+    "advancedLineJitter", "advancedTimebaseWobble", "advancedChromaDelay", "advancedCrossColor",
+    "advancedDropouts", "advancedTapeCrease", "advancedRfInterference", "advancedInterlacing",
+    "advancedQuantization", "advancedMacroBlocking", "advancedFrameStutter", "advancedGenerationLoss",
+    "advancedGhosting", "advancedFilmDust", "advancedFilmScratches", "advancedFilmGrain",
+    "advancedFilmHalation", "advancedWhiteBalanceDrift", "advancedTimestampOSD",
+  ];
+
   const PARAM_LIMITS = Object.fromEntries(controlIds.map((id) => {
     const input = document.getElementById(id);
     return [id, { min: Number(input?.min), max: Number(input?.max) }];
@@ -1618,6 +1627,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let showOriginalPreview = false;
   let compareLocked = false;
   let activePresetName = null;
+  const detachedMacroIds = new Set();
+  const presetPinnedIds = new Set();
+  const PARAM_POLICY_STORAGE_KEY = "lme:param-policy:v1";
   const EFFECT_PANEL_CONFIGS = {
     crt: {
       toggleId: "crtEffectsEnabled",
@@ -2107,6 +2119,111 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
 
 
+  function saveParameterPolicyState() {
+    try {
+      localStorage.setItem(PARAM_POLICY_STORAGE_KEY, JSON.stringify({
+        detached: Array.from(detachedMacroIds),
+        pinned: Array.from(presetPinnedIds),
+      }));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function loadParameterPolicyState() {
+    try {
+      const raw = localStorage.getItem(PARAM_POLICY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      for (const id of parsed?.detached || []) {
+        if (macroTargetIds.includes(id)) detachedMacroIds.add(id);
+      }
+      for (const id of parsed?.pinned || []) {
+        if (macroTargetIds.includes(id)) presetPinnedIds.add(id);
+      }
+    } catch {
+      // ignore malformed state
+    }
+  }
+
+  function buildMacroPolicyControls() {
+    const container = document.getElementById("macroPolicyControls");
+    if (!container) return;
+    container.innerHTML = "";
+
+    for (const id of macroTargetIds) {
+      const row = document.createElement("label");
+      row.className = "checkbox-row";
+      const pretty = RANGE_CONTROL_LABELS[id] || id;
+      row.innerHTML = `<span>${pretty}</span>`;
+
+      const controls = document.createElement("span");
+      controls.style.display = "inline-flex";
+      controls.style.gap = "0.5rem";
+
+      const detach = document.createElement("input");
+      detach.type = "checkbox";
+      detach.checked = detachedMacroIds.has(id);
+      detach.title = `Detach ${pretty} from macro automation`;
+      detach.addEventListener("input", () => {
+        if (detach.checked) detachedMacroIds.add(id);
+        else detachedMacroIds.delete(id);
+        saveParameterPolicyState();
+        markPreviewDirty();
+      });
+
+      const pin = document.createElement("input");
+      pin.type = "checkbox";
+      pin.checked = presetPinnedIds.has(id);
+      pin.title = `Pin ${pretty} so presets do not overwrite it`;
+      pin.addEventListener("input", () => {
+        if (pin.checked) presetPinnedIds.add(id);
+        else presetPinnedIds.delete(id);
+        saveParameterPolicyState();
+      });
+
+      const detachWrap = document.createElement("label");
+      detachWrap.className = "checkbox-row";
+      detachWrap.append(detach, document.createTextNode("Detach"));
+
+      const pinWrap = document.createElement("label");
+      pinWrap.className = "checkbox-row";
+      pinWrap.append(pin, document.createTextNode("Pin"));
+
+      controls.append(detachWrap, pinWrap);
+      row.appendChild(controls);
+      container.appendChild(row);
+    }
+  }
+
+  function randomizeMacroControls(amount = 0.35) {
+    for (const id of macroControlIds) {
+      const slider = document.getElementById(id);
+      if (!slider) continue;
+      const min = Number(slider.min);
+      const max = Number(slider.max);
+      const center = (min + max) * 0.5;
+      const span = (max - min) * amount;
+      const next = Math.max(min, Math.min(max, center + (Math.random() * 2 - 1) * span));
+      slider.value = String(next);
+      slider.__syncRangeNumber?.();
+    }
+    markPreviewDirty();
+    progressEl.value = 0;
+  }
+
+  function resetMacroControls() {
+    for (const id of macroControlIds) {
+      const slider = document.getElementById(id);
+      if (!slider) continue;
+      slider.value = slider.defaultValue;
+      slider.__syncRangeNumber?.();
+    }
+    markPreviewDirty();
+    progressEl.value = 0;
+  }
+
+
   function resetParameters() {
     const targetValues = defaultParamValues || readParams();
     for (const id of [...controlIds, ...macroControlIds]) {
@@ -2199,6 +2316,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   function addMacroValue(values, id, delta) {
+    if (detachedMacroIds.has(id)) return;
     values[id] = clampControlValue(id, Number(values[id] || 0) + delta);
   }
 
@@ -2316,6 +2434,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (!preset) return;
     const mapped = interpolatePresetValues(name, intensity);
     for (const id of controlIds) {
+      if (presetPinnedIds.has(id)) continue;
       const slider = document.getElementById(id);
       slider.value = mapped.values[id];
       slider.__syncRangeNumber?.();
@@ -2794,6 +2913,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     progressEl.value = 0;
   });
 
+  document.getElementById("macroRandomizeSubtle")?.addEventListener("click", () => randomizeMacroControls(0.18));
+  document.getElementById("macroRandomizeMedium")?.addEventListener("click", () => randomizeMacroControls(0.35));
+  document.getElementById("macroRandomizeWild")?.addEventListener("click", () => randomizeMacroControls(0.5));
+  document.getElementById("macroResetBtn")?.addEventListener("click", () => resetMacroControls());
+
   presetIntensityInput?.addEventListener("input", () => {
     if (!activePresetName) return;
     applyPreset(activePresetName, Number(presetIntensityInput.value || 1));
@@ -3032,6 +3156,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   setupDensityMode();
 
   setExportAvailability();
+  loadParameterPolicyState();
+  buildMacroPolicyControls();
   initializePresets();
   defaultParamValues = readParams();
   updatePreviewControlsState();
