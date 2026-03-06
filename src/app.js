@@ -1110,6 +1110,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const osdCountWithExportInput = document.getElementById("osdCountWithExport");
   const osdPrimaryColorInput = document.getElementById("osdPrimaryColor");
   const osdAccentColorInput = document.getElementById("osdAccentColor");
+  const osdStyleInput = document.getElementById("advancedOSDStyle");
+  const compareHoldBtn = document.getElementById("compareHoldBtn");
+  const presetDirtyTag = document.getElementById("presetDirtyTag");
 
   const controlIds = [
     "scanlineStrength",
@@ -1156,6 +1159,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let activeExportController = null;
   let isExporting = false;
   let previewDirty = true;
+  let showOriginalPreview = false;
+  let activePresetName = null;
 
   function setupRangeWithNumber(id) {
     const slider = document.getElementById(id);
@@ -1256,6 +1261,29 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     };
   }
 
+  function setupTabs() {
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab]"));
+    const panels = Array.from(document.querySelectorAll(".inspector-tab[data-panel]"));
+    if (!tabButtons.length || !panels.length) return;
+
+    const setTab = (name) => {
+      for (const button of tabButtons) {
+        const isActive = button.dataset.tab === name;
+        button.dataset.selected = isActive ? "true" : "false";
+      }
+      for (const panel of panels) {
+        panel.hidden = panel.dataset.panel !== name;
+      }
+    };
+
+    for (const button of tabButtons) {
+      button.addEventListener("click", () => setTab(button.dataset.tab));
+    }
+
+    const initial = tabButtons.find((button) => button.dataset.selected === "true")?.dataset.tab || tabButtons[0].dataset.tab;
+    setTab(initial);
+  }
+
   function setStatus(message, mode = "info") {
     statusEl.textContent = message;
     statusEl.dataset.mode = mode;
@@ -1282,6 +1310,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let presetControl;
   let exportFormatControl;
   let osdFontPresetControl;
+  let osdStyleControl;
 
   function isStillPreviewMode() {
     return previewModeControl?.getValue() === "still";
@@ -1396,6 +1425,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     markPreviewDirty();
     progressEl.value = 0;
     setStatus("Parameters reset to defaults.", "success");
+    updatePresetDirtyState();
   }
 
   function clearLoadedSource({ silent = false } = {}) {
@@ -1465,6 +1495,24 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       slider.value = nextValue;
       slider.__syncRangeNumber?.();
     }
+    activePresetName = name;
+    updatePresetDirtyState();
+  }
+
+  function updatePresetDirtyState() {
+    if (!presetDirtyTag) return;
+    const baseline = activePresetName ? presets[activePresetName] : null;
+    if (!baseline) {
+      presetDirtyTag.hidden = true;
+      return;
+    }
+
+    const current = readParams();
+    const changed = controlIds.some((id) => {
+      const expected = Number(baseline[id] ?? 0);
+      return Math.abs(Number(current[id] ?? 0) - expected) > 0.0001;
+    });
+    presetDirtyTag.hidden = !changed;
   }
 
   function initializePresets() {
@@ -1502,6 +1550,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const defaultPreset = presets["Consumer TV"] ? "Consumer TV" : names[0];
     presetControl.setValue(defaultPreset, { silent: true });
     applyPreset(defaultPreset);
+    updatePresetDirtyState();
   }
 
   async function loadImageFromFile(file) {
@@ -1653,6 +1702,23 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
     const shouldRender = previewDirty;
     if (shouldRender) {
+      if (showOriginalPreview && renderer.hasImage) {
+        const source = loadedSourceType === "video" ? loadedVideo?.video : loadedImage;
+        if (source) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "black";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          const srcW = source.videoWidth || source.naturalWidth || canvas.width;
+          const srcH = source.videoHeight || source.naturalHeight || canvas.height;
+          const scale = Math.min(canvas.width / srcW, canvas.height / srcH);
+          const drawW = Math.max(1, Math.round(srcW * scale));
+          const drawH = Math.max(1, Math.round(srcH * scale));
+          ctx.drawImage(source, (canvas.width - drawW) / 2, (canvas.height - drawH) / 2, drawW, drawH);
+          previewDirty = false;
+          requestAnimationFrame(animate);
+          return;
+        }
+      }
       const { width: previewWidth, height: previewHeight } = getPreviewRenderSize();
       if (previewWidth === canvas.width && previewHeight === canvas.height) {
         renderer.render(ctx, canvas.width, canvas.height, frame / fps, readParams(), frame, fps, readOSDOptions(loadedSourceType === "video" ? previewFrameSeconds : frame / fps));
@@ -1871,6 +1937,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     document.getElementById(id).addEventListener("input", () => {
       markPreviewDirty();
       progressEl.value = 0;
+      updatePresetDirtyState();
     });
   }
 
@@ -1936,6 +2003,41 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       progressEl.value = 0;
     },
   });
+
+  osdStyleControl = setupSelectionBox("advancedOSDStyleSelect", {
+    valueParser: Number,
+    onChange: (value) => {
+      if (osdStyleInput) {
+        osdStyleInput.value = String(value);
+        osdStyleInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+  });
+
+  if (osdStyleInput) {
+    osdStyleControl?.setValue(String(Math.round(Number(osdStyleInput.value) || 0)), { silent: true });
+    osdStyleInput.addEventListener("input", () => {
+      osdStyleControl?.setValue(String(Math.round(Number(osdStyleInput.value) || 0)), { silent: true });
+    });
+  }
+
+  const setCompareState = (enabled) => {
+    showOriginalPreview = enabled;
+    if (compareHoldBtn) compareHoldBtn.dataset.selected = enabled ? "true" : "false";
+    markPreviewDirty();
+  };
+
+  compareHoldBtn?.addEventListener("pointerdown", () => setCompareState(true));
+  compareHoldBtn?.addEventListener("pointerup", () => setCompareState(false));
+  compareHoldBtn?.addEventListener("pointerleave", () => setCompareState(false));
+  compareHoldBtn?.addEventListener("keydown", (event) => {
+    if (event.code === "Space") setCompareState(true);
+  });
+  compareHoldBtn?.addEventListener("keyup", (event) => {
+    if (event.code === "Space") setCompareState(false);
+  });
+
+  setupTabs();
 
   setExportAvailability();
   initializePresets();
