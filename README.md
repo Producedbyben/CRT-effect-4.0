@@ -47,6 +47,21 @@ The preset list now includes a concrete “lost media” matrix that maps direct
 These presets are intentionally non-destructive starting points; tweak from each baseline to dial in subtle
 or extreme authenticity per shot.
 
+
+## New lost-media controls
+
+In addition to the original CRT + analog controls, the advanced panel now includes dedicated knobs for:
+
+- **Frame stutter/drop** (temporal cadence instability)
+- **RF interference bands** (horizontal signal bursts)
+- **Exposure pumping** (auto-exposure breathing)
+- **White balance drift** (warm/cool cast wandering over time)
+- **Focus breathing** (periodic softness pulses)
+- **Tape crease events** (localized horizontal warp/chew style damage)
+- **Timestamp OSD** (camcorder-style date/time burn-in)
+
+These are all deterministic per frame, so preview and export stay visually aligned.
+
 ## CRT tuning tips
 
 - **Consumer TV look**: increase barrel distortion, bloom, chromatic aberration, and moderate scanlines.
