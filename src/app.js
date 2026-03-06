@@ -1649,7 +1649,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   const RANGE_CONTROL_LABELS = {
     scanlineStrength: "Scanline strength",
-    phosphorMask: "Phosphor mask",
+    phosphorMask: "Mask strength",
     barrelDistortion: "Barrel distortion",
     bloom: "Bloom",
     flicker: "Flicker",
