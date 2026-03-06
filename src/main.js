@@ -16,7 +16,7 @@ const FALLBACK_PRESETS = {
   "Consumer TV": {
     scanlineStrength: 0.45,
     phosphorMask: 0.36,
-    barrelDistortion: 0.28,
+    barrelDistortion: -0.109,
     bloom: 0.45,
     flicker: 0.1,
     chromaticAberration: 0.3,
@@ -26,7 +26,7 @@ const FALLBACK_PRESETS = {
   "RF Broadcast": {
     scanlineStrength: 0.42,
     phosphorMask: 0.38,
-    barrelDistortion: 0.24,
+    barrelDistortion: -0.094,
     bloom: 0.48,
     flicker: 0.14,
     chromaticAberration: 0.36,
@@ -43,7 +43,7 @@ const FALLBACK_PRESETS = {
   "VHS EP": {
     scanlineStrength: 0.5,
     phosphorMask: 0.24,
-    barrelDistortion: 0.22,
+    barrelDistortion: -0.086,
     bloom: 0.62,
     flicker: 0.16,
     chromaticAberration: 0.5,
@@ -60,7 +60,7 @@ const FALLBACK_PRESETS = {
   "Hi8 Camcorder": {
     scanlineStrength: 0.38,
     phosphorMask: 0.3,
-    barrelDistortion: 0.14,
+    barrelDistortion: -0.055,
     bloom: 0.42,
     flicker: 0.1,
     chromaticAberration: 0.22,
@@ -77,7 +77,7 @@ const FALLBACK_PRESETS = {
   "Arcade Cabinet": {
     scanlineStrength: 0.44,
     phosphorMask: 0.56,
-    barrelDistortion: 0.2,
+    barrelDistortion: -0.078,
     bloom: 0.58,
     flicker: 0.07,
     chromaticAberration: 0.18,
