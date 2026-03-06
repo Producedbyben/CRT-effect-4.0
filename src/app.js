@@ -1861,15 +1861,37 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   function setupQuickJumps() {
+    const collapsiblePanels = Array.from(document.querySelectorAll(".panel-collapsible"));
+    const collapsePanel = (panel, collapsed) => {
+      const body = panel.querySelector(":scope > .panel-body");
+      const collapseBtn = panel.querySelector(":scope > .panel-header .panel-collapse-btn");
+      if (!body || !collapseBtn) return;
+      panel.dataset.collapsed = collapsed ? "true" : "false";
+      panel.classList.toggle("panel-collapsed", collapsed);
+      body.setAttribute("aria-hidden", collapsed ? "true" : "false");
+      collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      collapseBtn.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
+      collapseBtn.textContent = collapsed ? "▸" : "▾";
+    };
+
     const jumpButtons = Array.from(document.querySelectorAll("[data-jump-target]"));
     for (const button of jumpButtons) {
       button.addEventListener("click", () => {
         const target = document.getElementById(button.dataset.jumpTarget || "");
         if (!target) return;
-        if (target.classList.contains("panel-collapsed")) {
-          const collapseBtn = target.querySelector(":scope > .panel-header .panel-collapse-btn");
-          collapseBtn?.click();
+
+        const tabPanel = target.closest(".inspector-tab[data-panel]");
+        if (tabPanel) {
+          const tabName = tabPanel.dataset.panel;
+          const tabButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+          tabButton?.click();
         }
+
+        for (const panel of collapsiblePanels) {
+          if (panel.id === "workspacePanel") continue;
+          collapsePanel(panel, panel !== target);
+        }
+
         target.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     }
@@ -1902,39 +1924,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const normalized = stored === "compact" ? "compact" : "comfortable";
     densityControl.setValue(normalized, { silent: true });
     setDensity(normalized);
-  }
-
-  function setupSyncedQuickControls() {
-    const syncedControls = Array.from(document.querySelectorAll("input[data-sync-target]"));
-    for (const quickInput of syncedControls) {
-      const target = document.getElementById(quickInput.dataset.syncTarget || "");
-      if (!target) continue;
-      let isSyncing = false;
-
-      const syncFromTarget = () => {
-        if (isSyncing) return;
-        isSyncing = true;
-        quickInput.value = target.value;
-        quickInput.__syncRangeNumber?.();
-        isSyncing = false;
-      };
-
-      const syncToTarget = () => {
-        if (isSyncing) return;
-        isSyncing = true;
-        target.value = quickInput.value;
-        target.__syncRangeNumber?.();
-        target.dispatchEvent(new Event("input", { bubbles: true }));
-        target.dispatchEvent(new Event("change", { bubbles: true }));
-        isSyncing = false;
-      };
-
-      quickInput.addEventListener("input", syncToTarget);
-      quickInput.addEventListener("change", syncToTarget);
-      target.addEventListener("input", syncFromTarget);
-      target.addEventListener("change", syncFromTarget);
-      syncFromTarget();
-    }
   }
 
   function setStatus(message, mode = "info") {
@@ -2925,7 +2914,6 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   setupTabs();
   setupQuickJumps();
   setupDensityMode();
-  setupSyncedQuickControls();
 
   setExportAvailability();
   initializePresets();
