@@ -10,7 +10,27 @@
     <main class="app">
       <aside class="left-rail">
         <h1>CRT Effect Renderer</h1>
-        <section class="panel panel-collapsible" aria-label="Import source">
+        <section class="panel panel-collapsible" id="workspacePanel" aria-label="Workspace shortcuts">
+          <header class="panel-header">Workspace shortcuts</header>
+          <div class="panel-body quick-grid">
+            <div class="jump-list" aria-label="Quick jump panels">
+              <button type="button" class="secondary-btn" data-jump-target="presetsPanel">Presets</button>
+              <button type="button" class="secondary-btn" data-jump-target="crtEffectsPanel">CRT</button>
+              <button type="button" class="secondary-btn" data-jump-target="digitalEffectsPanel">Digital</button>
+              <button type="button" class="secondary-btn" data-jump-target="filmEffectsPanel">Film</button>
+              <button type="button" class="secondary-btn" data-jump-target="artifactsPanel">Artifacts</button>
+              <button type="button" class="secondary-btn" data-jump-target="osdPanel">OSD</button>
+            </div>
+            <label>Control density
+              <div id="densityMode" class="selection-box selection-inline" role="radiogroup" aria-label="Control density mode">
+                <button type="button" data-value="comfortable" data-selected="true">Comfortable</button>
+                <button type="button" data-value="compact">Compact</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel panel-collapsible" id="importPanel" aria-label="Import source">
           <header class="panel-header">Import source</header>
           <div class="panel-body">
             <label class="file-input">
@@ -23,7 +43,7 @@
           </div>
         </section>
 
-        <section class="panel panel-collapsible" aria-label="Preset controls">
+        <section class="panel panel-collapsible" id="presetsPanel" aria-label="Preset controls">
           <header class="panel-header">Presets</header>
           <div class="panel-body">
             <div class="row preset-headline">
@@ -49,7 +69,7 @@
           </div>
         </section>
 
-        <section class="panel panel-collapsible" aria-label="CRT effects">
+        <section class="panel panel-collapsible" id="crtEffectsPanel" aria-label="CRT effects">
           <header class="panel-header panel-header-toggle">
             <span>CRT effects</span>
             <label class="panel-toggle"><input id="crtEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -66,7 +86,7 @@
           </div>
         </section>
 
-        <section class="panel panel-collapsible" aria-label="Digital effects">
+        <section class="panel panel-collapsible" id="digitalEffectsPanel" aria-label="Digital effects">
           <header class="panel-header panel-header-toggle">
             <span>Digital effects</span>
             <label class="panel-toggle"><input id="digitalEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -74,15 +94,20 @@
           <div class="panel-body quick-grid">
             <label>Noise <span class="range-control"><input id="noise" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Frame stutter/drop <span class="range-control"><input id="advancedFrameStutter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>RF interference bands <span class="range-control"><input id="advancedRfInterference" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>CCTV monochrome <span class="range-control"><input id="advancedCctvMonochrome" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Macroblocking <span class="range-control"><input id="advancedMacroBlocking" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+            <details class="advanced-disclosure panel-span-2">
+              <summary>Show advanced (5)</summary>
+              <div class="quick-grid">
+                <label>RF interference bands <span class="range-control"><input id="advancedRfInterference" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>CCTV monochrome <span class="range-control"><input id="advancedCctvMonochrome" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Macroblocking <span class="range-control"><input id="advancedMacroBlocking" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              </div>
+            </details>
           </div>
         </section>
 
-        <section class="panel panel-collapsible" aria-label="Film effects">
+        <section class="panel panel-collapsible" id="filmEffectsPanel" aria-label="Film effects">
           <header class="panel-header panel-header-toggle">
             <span>Film effects</span>
             <label class="panel-toggle"><input id="filmEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -90,12 +115,17 @@
           <div class="panel-body quick-grid">
             <label>Film grain <span class="range-control"><input id="advancedFilmGrain" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Film dust/specks <span class="range-control"><input id="advancedFilmDust" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Film scratches <span class="range-control"><input id="advancedFilmScratches" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Gate weave <span class="range-control"><input id="advancedFilmGateWeave" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Halation glow <span class="range-control"><input id="advancedFilmHalation" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Exposure pumping <span class="range-control"><input id="advancedExposurePump" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>White balance drift <span class="range-control"><input id="advancedWhiteBalanceDrift" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Focus breathing <span class="range-control"><input id="advancedFocusBreathing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+            <details class="advanced-disclosure panel-span-2">
+              <summary>Show advanced (6)</summary>
+              <div class="quick-grid">
+                <label>Film scratches <span class="range-control"><input id="advancedFilmScratches" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Gate weave <span class="range-control"><input id="advancedFilmGateWeave" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Halation glow <span class="range-control"><input id="advancedFilmHalation" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Exposure pumping <span class="range-control"><input id="advancedExposurePump" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>White balance drift <span class="range-control"><input id="advancedWhiteBalanceDrift" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                <label>Focus breathing <span class="range-control"><input id="advancedFocusBreathing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              </div>
+            </details>
           </div>
         </section>
       </aside>
@@ -188,25 +218,30 @@
 
       <aside class="right-inspector">
         <section class="inspector-tab" data-panel="degrade">
-          <section class="panel panel-collapsible">
+          <section class="panel panel-collapsible" id="artifactsPanel">
             <header class="panel-header">Additional video artifacts</header>
             <div class="panel-body controls-grid">
               <label>Pixel size <input id="pixelSize" type="number" min="1" max="8" step="1" value="1" /></label>
               <label>Line jitter <span class="range-control"><input id="advancedLineJitter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
               <label>Timebase wobble <span class="range-control"><input id="advancedTimebaseWobble" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Head-switching noise <span class="range-control"><input id="advancedHeadSwitching" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Luma/chroma delay <span class="range-control"><input id="advancedChromaDelay" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Cross-color artifacts <span class="range-control"><input id="advancedCrossColor" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Dropouts/tracking <span class="range-control"><input id="advancedDropouts" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Ghosting/trailing <span class="range-control"><input id="advancedGhosting" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Interlacing <span class="range-control"><input id="advancedInterlacing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-              <label>Tape crease events <span class="range-control"><input id="advancedTapeCrease" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <details class="advanced-disclosure panel-span-2">
+                <summary>Show advanced (7)</summary>
+                <div class="quick-grid">
+                  <label>Head-switching noise <span class="range-control"><input id="advancedHeadSwitching" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Luma/chroma delay <span class="range-control"><input id="advancedChromaDelay" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Cross-color artifacts <span class="range-control"><input id="advancedCrossColor" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Dropouts/tracking <span class="range-control"><input id="advancedDropouts" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Ghosting/trailing <span class="range-control"><input id="advancedGhosting" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Interlacing <span class="range-control"><input id="advancedInterlacing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                  <label>Tape crease events <span class="range-control"><input id="advancedTapeCrease" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+                </div>
+              </details>
             </div>
           </section>
         </section>
 
         <section class="inspector-tab" data-panel="osd">
-          <section class="panel panel-collapsible">
+          <section class="panel panel-collapsible" id="osdPanel">
             <header class="panel-header">Overlays & OSD</header>
             <div class="panel-body">
               <label>Timestamp intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>

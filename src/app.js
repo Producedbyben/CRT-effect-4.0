@@ -1539,6 +1539,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const presetDirtyTag = document.getElementById("presetDirtyTag");
   const presetIntensityInput = document.getElementById("presetIntensity");
   const exportEstimateEl = document.getElementById("exportEstimate");
+  const densityModeRoot = document.getElementById("densityMode");
 
   const controlIds = [
     "scanlineStrength",
@@ -1857,6 +1858,72 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
     const initial = tabButtons.find((button) => button.dataset.selected === "true")?.dataset.tab || tabButtons[0].dataset.tab;
     setTab(initial);
+  }
+
+  function setupQuickJumps() {
+    const collapsiblePanels = Array.from(document.querySelectorAll(".panel-collapsible"));
+    const collapsePanel = (panel, collapsed) => {
+      const body = panel.querySelector(":scope > .panel-body");
+      const collapseBtn = panel.querySelector(":scope > .panel-header .panel-collapse-btn");
+      if (!body || !collapseBtn) return;
+      panel.dataset.collapsed = collapsed ? "true" : "false";
+      panel.classList.toggle("panel-collapsed", collapsed);
+      body.setAttribute("aria-hidden", collapsed ? "true" : "false");
+      collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      collapseBtn.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
+      collapseBtn.textContent = collapsed ? "▸" : "▾";
+    };
+
+    const jumpButtons = Array.from(document.querySelectorAll("[data-jump-target]"));
+    for (const button of jumpButtons) {
+      button.addEventListener("click", () => {
+        const target = document.getElementById(button.dataset.jumpTarget || "");
+        if (!target) return;
+
+        const tabPanel = target.closest(".inspector-tab[data-panel]");
+        if (tabPanel) {
+          const tabName = tabPanel.dataset.panel;
+          const tabButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+          tabButton?.click();
+        }
+
+        for (const panel of collapsiblePanels) {
+          if (panel.id === "workspacePanel") continue;
+          collapsePanel(panel, panel !== target);
+        }
+
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
+
+  function setupDensityMode() {
+    const storageKey = "crt-ui-density";
+    const setDensity = (value) => {
+      document.body.dataset.density = value;
+      try {
+        localStorage.setItem(storageKey, value);
+      } catch {
+        // No-op if storage is not available.
+      }
+    };
+
+    const densityControl = setupSelectionBox("densityMode", {
+      onChange: (value) => setDensity(value),
+    });
+
+    if (!densityModeRoot) return;
+
+    let stored = "comfortable";
+    try {
+      stored = localStorage.getItem(storageKey) || "comfortable";
+    } catch {
+      stored = "comfortable";
+    }
+
+    const normalized = stored === "compact" ? "compact" : "comfortable";
+    densityControl.setValue(normalized, { silent: true });
+    setDensity(normalized);
   }
 
   function setStatus(message, mode = "info") {
@@ -2845,6 +2912,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   setupEffectPanelToggles();
   setupCollapsiblePanels();
   setupTabs();
+  setupQuickJumps();
+  setupDensityMode();
 
   setExportAvailability();
   initializePresets();
