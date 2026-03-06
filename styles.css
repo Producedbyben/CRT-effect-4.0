@@ -167,7 +167,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .osd-style-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.3rem;
 }
 
@@ -311,6 +311,11 @@ body[data-density="compact"] .selection-box button {
   .left-rail, .right-inspector { overflow: visible; }
   .preview-workspace { order: -1; }
   canvas { max-height: 55vh; }
+  .osd-style-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+
+@media (max-width: 900px) {
   .osd-style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
