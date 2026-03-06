@@ -1539,6 +1539,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const presetDirtyTag = document.getElementById("presetDirtyTag");
   const presetIntensityInput = document.getElementById("presetIntensity");
   const exportEstimateEl = document.getElementById("exportEstimate");
+  const densityModeRoot = document.getElementById("densityMode");
 
   const controlIds = [
     "scanlineStrength",
@@ -1857,6 +1858,83 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
     const initial = tabButtons.find((button) => button.dataset.selected === "true")?.dataset.tab || tabButtons[0].dataset.tab;
     setTab(initial);
+  }
+
+  function setupQuickJumps() {
+    const jumpButtons = Array.from(document.querySelectorAll("[data-jump-target]"));
+    for (const button of jumpButtons) {
+      button.addEventListener("click", () => {
+        const target = document.getElementById(button.dataset.jumpTarget || "");
+        if (!target) return;
+        if (target.classList.contains("panel-collapsed")) {
+          const collapseBtn = target.querySelector(":scope > .panel-header .panel-collapse-btn");
+          collapseBtn?.click();
+        }
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
+
+  function setupDensityMode() {
+    const storageKey = "crt-ui-density";
+    const setDensity = (value) => {
+      document.body.dataset.density = value;
+      try {
+        localStorage.setItem(storageKey, value);
+      } catch {
+        // No-op if storage is not available.
+      }
+    };
+
+    const densityControl = setupSelectionBox("densityMode", {
+      onChange: (value) => setDensity(value),
+    });
+
+    if (!densityModeRoot) return;
+
+    let stored = "comfortable";
+    try {
+      stored = localStorage.getItem(storageKey) || "comfortable";
+    } catch {
+      stored = "comfortable";
+    }
+
+    const normalized = stored === "compact" ? "compact" : "comfortable";
+    densityControl.setValue(normalized, { silent: true });
+    setDensity(normalized);
+  }
+
+  function setupSyncedQuickControls() {
+    const syncedControls = Array.from(document.querySelectorAll("input[data-sync-target]"));
+    for (const quickInput of syncedControls) {
+      const target = document.getElementById(quickInput.dataset.syncTarget || "");
+      if (!target) continue;
+      let isSyncing = false;
+
+      const syncFromTarget = () => {
+        if (isSyncing) return;
+        isSyncing = true;
+        quickInput.value = target.value;
+        quickInput.__syncRangeNumber?.();
+        isSyncing = false;
+      };
+
+      const syncToTarget = () => {
+        if (isSyncing) return;
+        isSyncing = true;
+        target.value = quickInput.value;
+        target.__syncRangeNumber?.();
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+        target.dispatchEvent(new Event("change", { bubbles: true }));
+        isSyncing = false;
+      };
+
+      quickInput.addEventListener("input", syncToTarget);
+      quickInput.addEventListener("change", syncToTarget);
+      target.addEventListener("input", syncFromTarget);
+      target.addEventListener("change", syncFromTarget);
+      syncFromTarget();
+    }
   }
 
   function setStatus(message, mode = "info") {
@@ -2625,7 +2703,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
-  for (const id of [...controlIds, "previewTime", "presetIntensity"]) {
+  for (const id of [...controlIds, "previewTime", "presetIntensity", "quickPresetIntensity", "quickScanlineStrength", "quickBloom", "quickChroma"]) {
     setupRangeWithNumber(id);
   }
 
@@ -2845,6 +2923,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   setupEffectPanelToggles();
   setupCollapsiblePanels();
   setupTabs();
+  setupQuickJumps();
+  setupDensityMode();
+  setupSyncedQuickControls();
 
   setExportAvailability();
   initializePresets();
