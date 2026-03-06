@@ -31,6 +31,46 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
   color: #e8eef8;
 }
 .panel-body { padding: 0.7rem; display: grid; gap: 0.5rem; }
+
+.panel-header-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: #b9c8dc;
+}
+
+.panel-toggle input {
+  width: auto;
+}
+
+.panel-effects-disabled .panel-body {
+  opacity: 0.55;
+}
+
+.panel-collapsible > .panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.panel-collapse-btn {
+  margin-left: 0.25rem;
+  width: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.panel-collapsed {
+  border-color: #36404f;
+}
 .panel-hint {
   margin: 0;
   font-size: 0.71rem;
