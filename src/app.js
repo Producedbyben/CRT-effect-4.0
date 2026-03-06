@@ -36,6 +36,59 @@ function normalizePresetRecord(entry, index = 0) {
   };
 }
 
+
+function inferLegacyPresetMetadata(name, values = {}, index = 0) {
+  const lower = String(name).toLowerCase();
+  let type = "Experimental";
+  if (lower.includes("vhs") || lower.includes("u-matic") || lower.includes("betacam")) type = "VHS";
+  else if (lower.includes("broadcast") || lower.includes("off-air") || lower.includes("public access")) type = "Broadcast";
+  else if (lower.includes("cam") || lower.includes("camcorder") || lower.includes("minidv") || lower.includes("hi8") || lower.includes("video8")) type = "Camcorder";
+  else if (lower.includes("cctv") || lower.includes("security")) type = "CCTV";
+  else if (lower.includes("web") || lower.includes("stream") || lower.includes("youtube") || lower.includes("digital")) type = "Web";
+  else if (lower.includes("film") || lower.includes("technicolor") || lower.includes("super 8") || lower.includes("16mm")) type = "Film";
+  else if (lower.includes("archive") || lower.includes("recovery")) type = "Archive";
+  else if (lower.includes("crt") || lower.includes("pvm") || lower.includes("arcade") || lower.includes("tv")) type = "CRT";
+
+  const eraMatch = lower.match(/(1920s|1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
+  const era = eraMatch ? eraMatch[1] : (lower.includes("late-80") ? "1980s" : (lower.includes("90") ? "1990s" : "2000s"));
+  const digital = (values.advancedQuantization || 0) + (values.advancedMacroBlocking || 0) + (values.advancedGenerationLoss || 0);
+  const analog = (values.advancedHeadSwitching || 0) + (values.advancedTimebaseWobble || 0) + (values.advancedDropouts || 0) + (values.advancedRfInterference || 0);
+  const signalFamily = digital > analog * 1.2 ? "digital" : (analog > digital * 1.2 ? "analog" : "hybrid");
+  const damageMetric = ((values.noise || 0) + (values.advancedDropouts || 0) + (values.advancedGenerationLoss || 0) + (values.advancedMacroBlocking || 0)) / 4;
+  const damageLevel = damageMetric < 0.12 ? "clean" : damageMetric < 0.25 ? "mild" : damageMetric < 0.4 ? "medium" : damageMetric < 0.58 ? "heavy" : "extreme";
+
+  return {
+    id: `legacy-${index + 1}-${name}`,
+    name,
+    description: "Legacy preset migrated from original CRT Effect preset pack.",
+    type,
+    era,
+    signalFamily,
+    damageLevel,
+    tags: ["legacy", "migrated"],
+    signalChain: "Legacy preset chain (source path unspecified in original preset definitions)",
+    historicalContext: "Migrated from the original preset list to preserve backward compatibility while the library scales.",
+    sortOrder: 400 + index,
+    realismScore: 8.0,
+    values,
+  };
+}
+
+async function loadMergedPresetLibrary(baseLibrary) {
+  const merged = Array.isArray(baseLibrary) ? [...baseLibrary] : [];
+  try {
+    const module = await import("./presets.js");
+    const legacyMap = module?.PRESETS || {};
+    const existingNames = new Set(merged.map((entry) => entry?.name));
+    Object.entries(legacyMap).forEach(([name, values], index) => {
+      if (existingNames.has(name)) return;
+      merged.push(inferLegacyPresetMetadata(name, values, index));
+    });
+  } catch (error) {
+    console.warn("Legacy preset module could not be loaded.", error);
+  }
+  return merged;
+}
 function buildPresetSystem(rawLibrary) {
   const records = (Array.isArray(rawLibrary) ? rawLibrary : []).map(normalizePresetRecord)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
@@ -146,10 +199,10 @@ function buildPresetSystem(rawLibrary) {
   let loadedSourceType = "image";
   let loadedVideo = null;
   let loadedImage = null;
-  const presetSystem = buildPresetSystem(window.CRT_PRESET_LIBRARY || Object.entries(FALLBACK_PRESETS).map(([name, values], index) => ({ id: `fallback-${index + 1}`, name, values, type: "CRT", era: "1980s", damageLevel: "mild", signalFamily: "analog", tags: ["fallback"], sortOrder: index })));
-  const presets = { ...presetSystem.presets };
-  const presetRecords = presetSystem.records;
-  const presetMetadataById = presetSystem.byId;
+  let presetSystem = buildPresetSystem(window.CRT_PRESET_LIBRARY || Object.entries(FALLBACK_PRESETS).map(([name, values], index) => ({ id: `fallback-${index + 1}`, name, values, type: "CRT", era: "1980s", damageLevel: "mild", signalFamily: "analog", tags: ["fallback"], sortOrder: index })));
+  let presets = { ...presetSystem.presets };
+  let presetRecords = presetSystem.records;
+  let presetMetadataById = presetSystem.byId;
   let presetFilters = { type: "all", era: "all", damageLevel: "all" };
   let start = performance.now();
   let previewFrameSeconds = 0;
@@ -1744,6 +1797,16 @@ function buildPresetSystem(rawLibrary) {
   setExportAvailability();
   loadParameterPolicyState();
   buildMacroPolicyControls();
+  loadMergedPresetLibrary(window.CRT_PRESET_LIBRARY || Object.entries(FALLBACK_PRESETS).map(([name, values], index) => ({ id: `fallback-${index + 1}`, name, values, type: "CRT", era: "1980s", damageLevel: "mild", signalFamily: "analog", tags: ["fallback"], sortOrder: index }))).then((library) => {
+    presetSystem = buildPresetSystem(library);
+    presets = { ...presetSystem.presets };
+    presetRecords = presetSystem.records;
+    presetMetadataById = presetSystem.byId;
+    initializePresetFilters();
+    initializePresets(activePresetName);
+    updatePresetDirtyState();
+  });
+
   initializePresetFilters();
   initializePresets();
   defaultParamValues = readParams();
