@@ -1,638 +1,15 @@
+(() => {
 const FALLBACK_PRESETS = {
-  "Consumer TV": {
-    scanlineStrength: 0.5,
-    phosphorMask: 0.5,
-    barrelDistortion: 0,
-    bloom: 0.5,
-    flicker: 0.22,
-    chromaticAberration: 0.5,
-    noise: 0.5,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "PVM/BVM": {
-    scanlineStrength: 0.25,
-    phosphorMask: 0.6,
-    barrelDistortion: -0.031,
-    bloom: 0.2,
+  "Consumer CRT Living Room (1987)": {
+    scanlineStrength: 0.46,
+    phosphorMask: 0.42,
+    barrelDistortion: -0.03,
+    bloom: 0.44,
     flicker: 0.12,
-    chromaticAberration: 0.08,
+    chromaticAberration: 0.22,
     noise: 0.16,
-    pixelSize: 1,
     maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  Arcade: {
-    scanlineStrength: 0.4,
-    phosphorMask: 0.45,
-    barrelDistortion: -0.047,
-    bloom: 0.55,
-    flicker: 0.2,
-    chromaticAberration: 0.2,
-    noise: 0.3,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "Late-80s Home VHS": {
-    scanlineStrength: 0.52,
-    phosphorMask: 0.26,
-    barrelDistortion: -0.094,
-    bloom: 0.62,
-    flicker: 0.16,
-    chromaticAberration: 0.51,
-    noise: 0.33,
-    pixelSize: 2,
-    maskScale: 1,
-    advancedLineJitter: 0.23,
-    advancedTimebaseWobble: 0.34,
-    advancedHeadSwitching: 0.42,
-    advancedChromaDelay: 0.33,
-    advancedCrossColor: 0.38,
-    advancedDropouts: 0.31,
-    advancedGhosting: 0.29,
-    advancedInterlacing: 0.29,
-    advancedFrameStutter: 0.22,
-    advancedRfInterference: 0.24,
-    advancedExposurePump: 0.19,
-    advancedWhiteBalanceDrift: 0.21,
-    advancedFocusBreathing: 0.18,
-    advancedTapeCrease: 0.2,
-    advancedTimestampOSD: 0.54,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "90s Rental Tape (3rd Gen Dub)": {
-    scanlineStrength: 0.59,
-    phosphorMask: 0.2,
-    barrelDistortion: -0.109,
-    bloom: 0.7,
-    flicker: 0.2,
-    chromaticAberration: 0.62,
-    noise: 0.45,
-    pixelSize: 3,
-    maskScale: 1.2,
-    advancedLineJitter: 0.31,
-    advancedTimebaseWobble: 0.44,
-    advancedHeadSwitching: 0.56,
-    advancedChromaDelay: 0.46,
-    advancedCrossColor: 0.54,
-    advancedDropouts: 0.49,
-    advancedGhosting: 0.43,
-    advancedInterlacing: 0.38,
-    advancedFrameStutter: 0.44,
-    advancedRfInterference: 0.34,
-    advancedExposurePump: 0.26,
-    advancedWhiteBalanceDrift: 0.24,
-    advancedFocusBreathing: 0.24,
-    advancedTapeCrease: 0.37,
-    advancedTimestampOSD: 0.62,
-    advancedOSDStyle: 2,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0.08,
-    advancedGenerationLoss: 0.72,
-    advancedMacroBlocking: 0.18,
-  },
-  "Hi8 Vacation Cam": {
-    scanlineStrength: 0.41,
-    phosphorMask: 0.32,
-    barrelDistortion: -0.058,
-    bloom: 0.46,
-    flicker: 0.11,
-    chromaticAberration: 0.24,
-    noise: 0.2,
-    pixelSize: 2,
-    maskScale: 1,
-    advancedLineJitter: 0.09,
-    advancedTimebaseWobble: 0.16,
-    advancedHeadSwitching: 0.21,
-    advancedChromaDelay: 0.24,
-    advancedCrossColor: 0.14,
-    advancedDropouts: 0.16,
-    advancedGhosting: 0.24,
-    advancedInterlacing: 0.26,
-    advancedFrameStutter: 0.05,
-    advancedRfInterference: 0.16,
-    advancedExposurePump: 0.23,
-    advancedWhiteBalanceDrift: 0.31,
-    advancedFocusBreathing: 0.17,
-    advancedTapeCrease: 0.12,
-    advancedTimestampOSD: 0.38,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "MiniDV Family Cam (2002)": {
-    scanlineStrength: 0.3,
-    phosphorMask: 0.44,
-    barrelDistortion: -0.039,
-    bloom: 0.32,
-    flicker: 0.08,
-    chromaticAberration: 0.17,
-    noise: 0.19,
-    pixelSize: 2,
-    maskScale: 1,
-    advancedLineJitter: 0.02,
-    advancedTimebaseWobble: 0.05,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.12,
-    advancedCrossColor: 0.06,
-    advancedDropouts: 0.08,
-    advancedGhosting: 0.18,
-    advancedInterlacing: 0.36,
-    advancedFrameStutter: 0.12,
-    advancedRfInterference: 0.06,
-    advancedExposurePump: 0.28,
-    advancedWhiteBalanceDrift: 0.22,
-    advancedFocusBreathing: 0.12,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0.51,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0.12,
-    advancedGenerationLoss: 0.05,
-    advancedMacroBlocking: 0.08,
-  },
-  "Off-Air Analog Broadcast": {
-    scanlineStrength: 0.45,
-    phosphorMask: 0.38,
-    barrelDistortion: -0.082,
-    bloom: 0.52,
-    flicker: 0.14,
-    chromaticAberration: 0.37,
-    noise: 0.28,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0.2,
-    advancedTimebaseWobble: 0.28,
-    advancedHeadSwitching: 0.06,
-    advancedChromaDelay: 0.24,
-    advancedCrossColor: 0.31,
-    advancedDropouts: 0.11,
-    advancedGhosting: 0.19,
-    advancedInterlacing: 0.24,
-    advancedFrameStutter: 0.18,
-    advancedRfInterference: 0.41,
-    advancedExposurePump: 0.21,
-    advancedWhiteBalanceDrift: 0.14,
-    advancedFocusBreathing: 0.11,
-    advancedTapeCrease: 0.03,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "Public Access Archive": {
-    scanlineStrength: 0.43,
-    phosphorMask: 0.34,
-    barrelDistortion: -0.07,
-    bloom: 0.48,
-    flicker: 0.13,
-    chromaticAberration: 0.33,
-    noise: 0.31,
-    pixelSize: 2,
-    maskScale: 1,
-    advancedLineJitter: 0.15,
-    advancedTimebaseWobble: 0.23,
-    advancedHeadSwitching: 0.12,
-    advancedChromaDelay: 0.28,
-    advancedCrossColor: 0.36,
-    advancedDropouts: 0.27,
-    advancedGhosting: 0.26,
-    advancedInterlacing: 0.31,
-    advancedFrameStutter: 0.23,
-    advancedRfInterference: 0.29,
-    advancedExposurePump: 0.25,
-    advancedWhiteBalanceDrift: 0.2,
-    advancedFocusBreathing: 0.15,
-    advancedTapeCrease: 0.11,
-    advancedTimestampOSD: 0.68,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    maskType: "none",
-  },
-  "Early Web Rip (2006)": {
-    scanlineStrength: 0,
-    phosphorMask: 0,
-    barrelDistortion: 0,
-    bloom: 0.04,
-    flicker: 0,
-    chromaticAberration: 0.02,
-    noise: 0.06,
-    pixelSize: 4,
-    maskScale: 1.3,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0.24,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 1,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0.46,
-    advancedGenerationLoss: 0.18,
-    advancedMacroBlocking: 0.34,
-    maskType: "none",
-  },
-  "Security Camera Dump": {
-    scanlineStrength: 0,
-    phosphorMask: 0,
-    barrelDistortion: 0,
-    bloom: 0.02,
-    flicker: 0,
-    chromaticAberration: 0.02,
-    noise: 0.2,
-    pixelSize: 5,
-    maskScale: 1.5,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0.02,
-    advancedGhosting: 0.03,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0.52,
-    advancedRfInterference: 0.19,
-    advancedExposurePump: 0.12,
-    advancedWhiteBalanceDrift: 0.08,
-    advancedFocusBreathing: 0.09,
-    advancedTapeCrease: 0.03,
-    advancedTimestampOSD: 0.76,
-    advancedOSDStyle: 3,
-    advancedCctvMonochrome: 0.72,
-    advancedQuantization: 0.42,
-    advancedGenerationLoss: 0.2,
-    advancedMacroBlocking: 0.3,
-    maskType: "none",
-  },
-  "Bootleg Concert Cam": {
-    scanlineStrength: 0.55,
-    phosphorMask: 0.24,
-    barrelDistortion: -0.101,
-    bloom: 0.76,
-    flicker: 0.24,
-    chromaticAberration: 0.58,
-    noise: 0.52,
-    pixelSize: 3,
-    maskScale: 1,
-    advancedLineJitter: 0.34,
-    advancedTimebaseWobble: 0.41,
-    advancedHeadSwitching: 0.35,
-    advancedChromaDelay: 0.4,
-    advancedCrossColor: 0.33,
-    advancedDropouts: 0.45,
-    advancedGhosting: 0.39,
-    advancedInterlacing: 0.33,
-    advancedFrameStutter: 0.24,
-    advancedRfInterference: 0.37,
-    advancedExposurePump: 0.43,
-    advancedWhiteBalanceDrift: 0.33,
-    advancedFocusBreathing: 0.4,
-    advancedTapeCrease: 0.39,
-    advancedTimestampOSD: 0.26,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
     maskType: "phosphor",
-  },
-  "Damaged Archive Recovery": {
-    scanlineStrength: 0.49,
-    phosphorMask: 0.27,
-    barrelDistortion: -0.074,
-    bloom: 0.58,
-    flicker: 0.18,
-    chromaticAberration: 0.46,
-    noise: 0.47,
-    pixelSize: 3,
-    maskScale: 1.1,
-    advancedLineJitter: 0.29,
-    advancedTimebaseWobble: 0.36,
-    advancedHeadSwitching: 0.28,
-    advancedChromaDelay: 0.37,
-    advancedCrossColor: 0.4,
-    advancedDropouts: 0.57,
-    advancedGhosting: 0.34,
-    advancedInterlacing: 0.3,
-    advancedFrameStutter: 0.34,
-    advancedRfInterference: 0.46,
-    advancedExposurePump: 0.29,
-    advancedWhiteBalanceDrift: 0.35,
-    advancedFocusBreathing: 0.31,
-    advancedTapeCrease: 0.52,
-    advancedTimestampOSD: 0.81,
-    advancedOSDStyle: 2,
-    advancedCctvMonochrome: 0.24,
-    advancedQuantization: 0.08,
-    advancedGenerationLoss: 0.79,
-    advancedMacroBlocking: 0.14,
-    maskType: "dot",
-  },
-  "Retro Pixel LCD": {
-    scanlineStrength: 0.08,
-    phosphorMask: 0.04,
-    barrelDistortion: 0,
-    bloom: 0.08,
-    flicker: 0.02,
-    chromaticAberration: 0.03,
-    noise: 0.04,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    maskType: "none",
-  },
-  "Cyberpunk OLED": {
-    scanlineStrength: 0.14,
-    phosphorMask: 0.12,
-    barrelDistortion: -0.012,
-    bloom: 0.68,
-    flicker: 0.03,
-    chromaticAberration: 0.06,
-    noise: 0.05,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0.04,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    maskType: "aperture",
-  },
-  "Streaming Compression": {
-    scanlineStrength: 0.18,
-    phosphorMask: 0.1,
-    barrelDistortion: 0,
-    bloom: 0.2,
-    flicker: 0.03,
-    chromaticAberration: 0.07,
-    noise: 0.12,
-    pixelSize: 2,
-    maskScale: 1.1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.02,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0.12,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0.3,
-    advancedGenerationLoss: 0.12,
-    advancedMacroBlocking: 0.32,
-    maskType: "none",
-  },
-  "Digital Surveillance": {
-    scanlineStrength: 0.22,
-    phosphorMask: 0.16,
-    barrelDistortion: 0,
-    bloom: 0.12,
-    flicker: 0.02,
-    chromaticAberration: 0.04,
-    noise: 0.18,
-    pixelSize: 3,
-    maskScale: 1.2,
-    advancedLineJitter: 0.02,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0.03,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0.26,
-    advancedRfInterference: 0.03,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0.42,
-    advancedOSDStyle: 3,
-    advancedCctvMonochrome: 0.36,
-    advancedQuantization: 0.24,
-    advancedGenerationLoss: 0.08,
-    advancedMacroBlocking: 0.18,
-    maskType: "none",
-  },
-  "Silent Film 1920s": {
-    scanlineStrength: 0,
-    phosphorMask: 0,
-    bloom: 0.08,
-    flicker: 0.24,
-    chromaticAberration: 0,
-    noise: 0.34,
-    pixelSize: 2,
-    advancedFrameStutter: 0.18,
-    advancedExposurePump: 0.22,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedQuantization: 0,
-    advancedCctvMonochrome: 0.92,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    advancedFilmGrain: 0.68,
-    advancedFilmDust: 0.44,
-    advancedFilmScratches: 0.62,
-    advancedFilmGateWeave: 0.56,
-    advancedFilmHalation: 0.22,
-    maskType: "none",
-  },
-  "Technicolor Print 1950s": {
-    scanlineStrength: 0.04,
-    phosphorMask: 0.08,
-    barrelDistortion: -0.01,
-    bloom: 0.36,
-    flicker: 0.05,
-    chromaticAberration: 0.12,
-    noise: 0.14,
-    pixelSize: 1,
-    advancedGhosting: 0.02,
-    advancedExposurePump: 0.1,
-    advancedWhiteBalanceDrift: 0.08,
-    advancedFocusBreathing: 0.04,
-    advancedQuantization: 0,
-    advancedCctvMonochrome: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    advancedFilmGrain: 0.44,
-    advancedFilmDust: 0.14,
-    advancedFilmScratches: 0.08,
-    advancedFilmGateWeave: 0.2,
-    advancedFilmHalation: 0.62,
-    maskType: "dot",
-  },
-  "Super 8 Home Reel 1970s": {
-    scanlineStrength: 0.06,
-    phosphorMask: 0.04,
-    barrelDistortion: -0.02,
-    bloom: 0.42,
-    flicker: 0.18,
-    chromaticAberration: 0.18,
-    noise: 0.29,
-    pixelSize: 2,
-    advancedFrameStutter: 0.14,
-    advancedExposurePump: 0.34,
-    advancedWhiteBalanceDrift: 0.24,
-    advancedFocusBreathing: 0.28,
-    advancedQuantization: 0,
-    advancedCctvMonochrome: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    advancedFilmGrain: 0.76,
-    advancedFilmDust: 0.38,
-    advancedFilmScratches: 0.28,
-    advancedFilmGateWeave: 0.46,
-    advancedFilmHalation: 0.4,
-    maskType: "filmSuper8",
-  },
-  "16mm Broadcast Kinescope": {
-    scanlineStrength: 0.22,
-    phosphorMask: 0.18,
-    barrelDistortion: -0.046,
-    bloom: 0.31,
-    flicker: 0.08,
-    chromaticAberration: 0.11,
-    noise: 0.22,
-    pixelSize: 2,
-    advancedLineJitter: 0.09,
-    advancedTimebaseWobble: 0.14,
-    advancedGhosting: 0.12,
-    advancedInterlacing: 0.2,
-    advancedDropouts: 0.08,
-    advancedExposurePump: 0.1,
-    advancedWhiteBalanceDrift: 0.06,
-    advancedFocusBreathing: 0.06,
-    advancedQuantization: 0,
-    advancedCctvMonochrome: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-    advancedFilmGrain: 0.48,
-    advancedFilmDust: 0.22,
-    advancedFilmScratches: 0.24,
-    advancedFilmGateWeave: 0.32,
-    advancedFilmHalation: 0.24,
-    maskType: "film16mm",
   },
 };
 
@@ -1339,258 +716,82 @@ function getEvenFrameSize(width, height) {
   const safeWidth = Math.max(1, Math.floor(width));
   const safeHeight = Math.max(1, Math.floor(height));
   return {
-    width: safeWidth % 2 === 0 ? safeWidth : safeWidth + 1,
-    height: safeHeight % 2 === 0 ? safeHeight : safeHeight + 1,
+    id,
+    name: entry?.name || id,
+    description: entry?.description || "",
+    type: entry?.type || "Experimental",
+    era: entry?.era || "2000s",
+    signalFamily: entry?.signalFamily || "hybrid",
+    damageLevel: entry?.damageLevel || "medium",
+    tags: Array.isArray(entry?.tags) ? entry.tags : [],
+    signalChain: entry?.signalChain || "",
+    historicalContext: entry?.historicalContext || "",
+    sortOrder: Number.isFinite(entry?.sortOrder) ? entry.sortOrder : index,
+    realismScore: Number.isFinite(entry?.realismScore) ? entry.realismScore : 8,
+    values,
   };
 }
 
-const MAX_AVC_CODED_PIXELS = 9_437_184;
 
-function fitExportSize(width, height, { maxEdge = 0, maxPixels = 0, forceEven = false } = {}) {
-  let outWidth = Math.max(1, Math.floor(width));
-  let outHeight = Math.max(1, Math.floor(height));
+function inferLegacyPresetMetadata(name, values = {}, index = 0) {
+  const lower = String(name).toLowerCase();
+  let type = "Experimental";
+  if (lower.includes("vhs") || lower.includes("u-matic") || lower.includes("betacam")) type = "VHS";
+  else if (lower.includes("broadcast") || lower.includes("off-air") || lower.includes("public access")) type = "Broadcast";
+  else if (lower.includes("cam") || lower.includes("camcorder") || lower.includes("minidv") || lower.includes("hi8") || lower.includes("video8")) type = "Camcorder";
+  else if (lower.includes("cctv") || lower.includes("security")) type = "CCTV";
+  else if (lower.includes("web") || lower.includes("stream") || lower.includes("youtube") || lower.includes("digital")) type = "Web";
+  else if (lower.includes("film") || lower.includes("technicolor") || lower.includes("super 8") || lower.includes("16mm")) type = "Film";
+  else if (lower.includes("archive") || lower.includes("recovery")) type = "Archive";
+  else if (lower.includes("crt") || lower.includes("pvm") || lower.includes("arcade") || lower.includes("tv")) type = "CRT";
 
-  if (maxEdge > 0) {
-    const scale = Math.min(1, maxEdge / Math.max(outWidth, outHeight));
-    outWidth = Math.max(1, Math.round(outWidth * scale));
-    outHeight = Math.max(1, Math.round(outHeight * scale));
-  }
+  const eraMatch = lower.match(/(1920s|1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
+  const era = eraMatch ? eraMatch[1] : (lower.includes("late-80") ? "1980s" : (lower.includes("90") ? "1990s" : "2000s"));
+  const digital = (values.advancedQuantization || 0) + (values.advancedMacroBlocking || 0) + (values.advancedGenerationLoss || 0);
+  const analog = (values.advancedHeadSwitching || 0) + (values.advancedTimebaseWobble || 0) + (values.advancedDropouts || 0) + (values.advancedRfInterference || 0);
+  const signalFamily = digital > analog * 1.2 ? "digital" : (analog > digital * 1.2 ? "analog" : "hybrid");
+  const damageMetric = ((values.noise || 0) + (values.advancedDropouts || 0) + (values.advancedGenerationLoss || 0) + (values.advancedMacroBlocking || 0)) / 4;
+  const damageLevel = damageMetric < 0.12 ? "clean" : damageMetric < 0.25 ? "mild" : damageMetric < 0.4 ? "medium" : damageMetric < 0.58 ? "heavy" : "extreme";
 
-  if (maxPixels > 0 && outWidth * outHeight > maxPixels) {
-    const scale = Math.sqrt(maxPixels / (outWidth * outHeight));
-    outWidth = Math.max(1, Math.floor(outWidth * scale));
-    outHeight = Math.max(1, Math.floor(outHeight * scale));
-  }
-
-  if (forceEven) {
-    return getEvenFrameSize(outWidth, outHeight);
-  }
-
-  return { width: outWidth, height: outHeight };
+  return {
+    id: `legacy-${index + 1}-${name}`,
+    name,
+    description: "Legacy preset migrated from original CRT Effect preset pack.",
+    type,
+    era,
+    signalFamily,
+    damageLevel,
+    tags: ["legacy", "migrated"],
+    signalChain: "Legacy preset chain (source path unspecified in original preset definitions)",
+    historicalContext: "Migrated from the original preset list to preserve backward compatibility while the library scales.",
+    sortOrder: 400 + index,
+    realismScore: 8.0,
+    values,
+  };
 }
 
-async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, getRenderOptions }) {
-  if (!("VideoEncoder" in window)) {
-    throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
-  }
-
-  const { Muxer, ArrayBufferTarget } = await import(MP4_MUXER_CDN);
-  const throwIfAborted = () => {
-    if (signal?.aborted) {
-      throw new DOMException("Export cancelled by user.", "AbortError");
-    }
-  };
-  throwIfAborted();
-  const width = canvas.width;
-  const height = canvas.height;
-  const encodedSize = getEvenFrameSize(width, height);
-  const encodingNeedsPadding = encodedSize.width !== width || encodedSize.height !== height;
-  const totalFrames = Math.max(1, Math.floor(duration * fps));
-
-  const renderCanvas = document.createElement("canvas");
-  renderCanvas.width = width;
-  renderCanvas.height = height;
-  const ctx = renderCanvas.getContext("2d", { alpha: false });
-
-  const encodeCanvas = encodingNeedsPadding ? document.createElement("canvas") : renderCanvas;
-  encodeCanvas.width = encodedSize.width;
-  encodeCanvas.height = encodedSize.height;
-  const encodeCtx = encodingNeedsPadding ? encodeCanvas.getContext("2d", { alpha: false }) : null;
-
-  const target = new ArrayBufferTarget();
-  const muxer = new Muxer({
-    target,
-    video: { codec: "avc", width: encodedSize.width, height: encodedSize.height },
-    fastStart: "in-memory",
-  });
-
-  let encoderFailure = null;
-  const encoder = new VideoEncoder({
-    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-    error: (err) => {
-      encoderFailure = err;
-    },
-  });
-
-  const codec = getAvcCodecForResolution(encodedSize.width, encodedSize.height);
-  const bitrate = Math.max(250_000, Math.round(getTargetBitrate(encodedSize.width, encodedSize.height, fps) * Math.max(0.5, bitrateScale)));
-
+async function loadMergedPresetLibrary(baseLibrary) {
+  const merged = Array.isArray(baseLibrary) ? [...baseLibrary] : [];
   try {
-    encoder.configure({
-      codec,
-      width: encodedSize.width,
-      height: encodedSize.height,
-      framerate: fps,
-      bitrate,
-      latencyMode: "quality",
-      hardwareAcceleration: "prefer-hardware",
+    const module = await import("./presets.js");
+    const legacyMap = module?.PRESETS || {};
+    const existingNames = new Set(merged.map((entry) => entry?.name));
+    Object.entries(legacyMap).forEach(([name, values], index) => {
+      if (existingNames.has(name)) return;
+      merged.push(inferLegacyPresetMetadata(name, values, index));
     });
   } catch (error) {
-    console.warn("Hardware-accelerated encoder config unavailable; falling back.", error);
-    encoder.configure({
-      codec,
-      width: encodedSize.width,
-      height: encodedSize.height,
-      framerate: fps,
-      bitrate,
-      latencyMode: "quality",
-    });
+    console.warn("Legacy preset module could not be loaded.", error);
   }
-
-  for (let frame = 0; frame < totalFrames; frame++) {
-    throwIfAborted();
-    if (encoderFailure) {
-      throw encoderFailure;
-    }
-
-    const t = frame / fps;
-    if (beforeRenderFrame) await beforeRenderFrame(t, frame, fps);
-    renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
-
-    if (encodingNeedsPadding && encodeCtx) {
-      encodeCtx.fillStyle = "#000";
-      encodeCtx.fillRect(0, 0, encodeCanvas.width, encodeCanvas.height);
-      encodeCtx.drawImage(renderCanvas, 0, 0);
-    }
-
-    const videoFrame = new VideoFrame(encodeCanvas, {
-      timestamp: Math.round((frame * 1_000_000) / fps),
-      duration: Math.round(1_000_000 / fps),
-    });
-
-    try {
-      encoder.encode(videoFrame);
-    } finally {
-      videoFrame.close();
-    }
-
-    onProgress?.((frame + 1) / totalFrames, frame + 1, totalFrames);
-
-    if (frame % 30 === 0) {
-      await new Promise((r) => setTimeout(r, 0));
-    }
-  }
-
-  await encoder.flush();
-  throwIfAborted();
-  if (encoderFailure) {
-    throw encoderFailure;
-  }
-  encoder.close();
-  muxer.finalize();
-
-  const blob = new Blob([target.buffer], { type: "video/mp4" });
-  downloadBlob(blob, `crt-export-${Date.now()}.mp4`);
+  return merged;
 }
-
-function getSupportedWebmMimeType(withAudio) {
-  const candidates = withAudio
-    ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
-    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
+function buildPresetSystem(rawLibrary) {
+  const records = (Array.isArray(rawLibrary) ? rawLibrary : []).map(normalizePresetRecord)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  const presets = Object.fromEntries(records.map((record) => [record.id, record.values]));
+  const byId = Object.fromEntries(records.map((record) => [record.id, record]));
+  return { records, presets, byId };
 }
-
-async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio, getRenderOptions }) {
-  const width = canvas.width;
-  const height = canvas.height;
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
-  const totalFrames = Math.max(1, Math.floor(duration * fps));
-
-  const stream = canvas.captureStream(fps);
-  const sourceVideo = loadedSourceType === "video" ? loadedVideo?.video : null;
-  const wantsAudio = includeAudio && !!sourceVideo;
-  const shouldRunRealtimeVideo = !!sourceVideo && wantsAudio;
-  let restoreMuted = null;
-
-  if (wantsAudio) {
-    try {
-      const mediaStream = sourceVideo.captureStream?.() || sourceVideo.mozCaptureStream?.();
-      const audioTrack = mediaStream?.getAudioTracks?.()[0];
-      if (audioTrack) {
-        stream.addTrack(audioTrack);
-      }
-    } catch (error) {
-      console.warn("Couldn't capture original audio track; exporting without audio.", error);
-    }
-  }
-
-  const mimeType = getSupportedWebmMimeType(wantsAudio);
-  const chunks = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType,
-    videoBitsPerSecond: getTargetBitrate(width, height, fps),
-  });
-
-  recorder.addEventListener("dataavailable", (event) => {
-    if (event.data && event.data.size > 0) chunks.push(event.data);
-  });
-
-  const stopPromise = new Promise((resolve) => {
-    recorder.addEventListener("stop", resolve, { once: true });
-  });
-
-  recorder.start(250);
-
-  if (sourceVideo && !shouldRunRealtimeVideo) {
-    await seekVideo(sourceVideo, 0);
-    sourceVideo.pause();
-  }
-
-  if (shouldRunRealtimeVideo) {
-    restoreMuted = sourceVideo.muted;
-    sourceVideo.muted = false;
-    await seekVideo(sourceVideo, 0);
-    await sourceVideo.play();
-  }
-
-  const start = performance.now();
-  for (let frame = 0; frame < totalFrames; frame++) {
-    if (signal?.aborted) {
-      recorder.stop();
-      throw new DOMException("The operation was aborted.", "AbortError");
-    }
-
-    const t = shouldRunRealtimeVideo
-      ? Math.min(sourceVideo.currentTime, Math.max(0, duration - 1 / fps))
-      : frame / fps;
-    if (sourceVideo && !shouldRunRealtimeVideo) {
-      await seekVideo(sourceVideo, t);
-      renderer.setImage(sourceVideo, sourceScale());
-    } else if (sourceVideo) {
-      renderer.setImage(sourceVideo, sourceScale());
-    } else if (loadedImage) {
-      renderer.setImage(loadedImage, sourceScale());
-    }
-
-    renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
-    onProgress?.((frame + 1) / totalFrames, frame + 1, totalFrames);
-
-    const nextFrameAt = start + ((frame + 1) * 1000) / fps;
-    const delay = Math.max(0, nextFrameAt - performance.now());
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  recorder.stop();
-  await stopPromise;
-
-  if (sourceVideo) {
-    sourceVideo.pause();
-    if (restoreMuted !== null) {
-      sourceVideo.muted = restoreMuted;
-    }
-  }
-
-  for (const track of stream.getTracks()) {
-    track.stop();
-  }
-
-  const blob = new Blob(chunks, { type: mimeType });
-  downloadBlob(blob, `crt-export-${Date.now()}.webm`);
-}
-
-(function boot() {
   const renderer = new CRTRenderer();
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -2475,8 +1676,8 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     return values;
   }
 
-  function interpolatePresetValues(name, intensity = 1) {
-    const preset = presets[name] || {};
+  function interpolatePresetValues(presetId, intensity = 1) {
+    const preset = presets[presetId] || {};
     const expected = {};
     for (const id of controlIds) {
       const slider = document.getElementById(id);
@@ -2512,10 +1713,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     };
   }
 
-  function applyPreset(name, intensity = Number(presetIntensityInput?.value || 1)) {
-    const preset = presets[name];
+  function applyPreset(presetId, intensity = Number(presetIntensityInput?.value || 1)) {
+    const preset = presets[presetId];
     if (!preset) return;
-    const mapped = interpolatePresetValues(name, intensity);
+    const mapped = interpolatePresetValues(presetId, intensity);
     for (const id of controlIds) {
       if (presetPinnedIds.has(id)) continue;
       const slider = document.getElementById(id);
@@ -2524,7 +1725,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
     maskTypeControl?.setValue(mapped.maskType, { silent: true });
     enforceDisabledEffectPanels();
-    activePresetName = name;
+    activePresetName = presetId;
     updatePresetDirtyState();
   }
 
@@ -2590,16 +1791,16 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const names = getFilteredPresetNames();
     presetSelect.innerHTML = "";
 
-    if (names.length === 0) {
+    if (visibleRecords.length === 0) {
       const message = document.createElement("div");
       message.className = "selection-empty";
-      message.textContent = "No presets available";
+      message.textContent = "No presets match current filters";
       presetSelect.appendChild(message);
       renderPresetMeta("");
       return;
     }
 
-    for (const name of names) {
+    for (const record of visibleRecords) {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.value = name;
@@ -2609,7 +1810,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
 
     presetControl = setupSelectionBox("presetSelect", {
-      onChange: (name) => {
+      onChange: (presetId) => {
         if (presetIntensityInput) {
           presetIntensityInput.value = "1";
           presetIntensityInput.__syncRangeNumber?.();
@@ -2618,7 +1819,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         renderPresetMeta(name);
         markPreviewDirty();
         progressEl.value = 0;
-        setStatus(`Preset applied: ${name}`, "success");
+        setStatus(`Preset applied: ${presetMetadataById[presetId]?.name || presetId}`, "success");
       },
     });
 
