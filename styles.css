@@ -72,7 +72,7 @@ canvas {
 }
 .timeline-row { display: grid; grid-template-columns: 1.4fr 120px 1fr; gap: 0.5rem; align-items: end; }
 
-.export-dock { position: sticky; bottom: 0; padding: 0.62rem; display: grid; gap: 0.44rem; background: #141922; border-color: #323a47; }
+.export-dock { position: relative; padding: 0.62rem; display: grid; gap: 0.44rem; background: #141922; border-color: #323a47; }
 .dock-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0.45rem; align-items: end; }
 .dock-audio { grid-column: span 2; }
 
