@@ -1428,6 +1428,20 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     updatePresetDirtyState();
   }
 
+  function resetSingleControlToDefault(id) {
+    const slider = document.getElementById(id);
+    if (!slider) return;
+    const fallback = Number(slider.defaultValue);
+    const defaultValue = defaultParamValues && typeof defaultParamValues[id] === "number"
+      ? defaultParamValues[id]
+      : (Number.isFinite(fallback) ? fallback : Number(slider.value) || 0);
+    slider.value = defaultValue;
+    slider.__syncRangeNumber?.();
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+    setStatus(`Reset ${id} to default.`, "info");
+    updatePresetDirtyState();
+  }
+
   function clearLoadedSource({ silent = false } = {}) {
     if (loadedVideo?.video) {
       loadedVideo.video.pause();
@@ -1950,6 +1964,16 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   for (const id of [...controlIds, "previewTime"]) {
     setupRangeWithNumber(id);
+  }
+
+  for (const id of controlIds) {
+    const slider = document.getElementById(id);
+    if (!slider || slider.type !== "range") continue;
+    slider.addEventListener("dblclick", () => {
+      resetSingleControlToDefault(id);
+      progressEl.value = 0;
+      markPreviewDirty();
+    });
   }
 
   previewModeControl = setupSelectionBox("previewMode", {
