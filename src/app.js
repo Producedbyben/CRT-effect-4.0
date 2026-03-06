@@ -806,29 +806,31 @@ class CRTRenderer {
     }
 
     if (macroBlocking > 0.01) {
-      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
-      const effectiveMacro = macroBlocking * (0.45 + perfBudget * 0.55);
-      const blockSize = Math.max(4, Math.round(4 + effectiveMacro * 16));
+      const pixelCount = Math.max(1, width * height);
+      const perfBudget = Math.min(1, 921600 / pixelCount);
+      const resolutionPenalty = Math.min(1, 2073600 / pixelCount);
+      const effectiveMacro = macroBlocking * (0.3 + perfBudget * 0.45 + resolutionPenalty * 0.25);
+      const blockSize = Math.max(6, Math.round(6 + effectiveMacro * 22 + (1 - resolutionPenalty) * 14));
       const lowW = Math.max(1, Math.floor(width / blockSize));
       const lowH = Math.max(1, Math.floor(height / blockSize));
 
       if (this.tempCanvas.width !== lowW) this.tempCanvas.width = lowW;
       if (this.tempCanvas.height !== lowH) this.tempCanvas.height = lowH;
       const tctx = this.tempCanvas.getContext("2d");
-      tctx.clearRect(0, 0, lowW, lowH);
       tctx.imageSmoothingEnabled = true;
       tctx.imageSmoothingQuality = "low";
       tctx.drawImage(outCtx.canvas, 0, 0, lowW, lowH);
 
       outCtx.save();
       outCtx.imageSmoothingEnabled = false;
-      outCtx.globalAlpha = Math.min(0.8, 0.14 + effectiveMacro * 0.52);
+      outCtx.globalAlpha = Math.min(0.72, 0.12 + effectiveMacro * 0.44);
       outCtx.drawImage(this.tempCanvas, 0, 0, lowW, lowH, 0, 0, width, height);
       outCtx.restore();
 
-      if (effectiveMacro > 0.28) {
+      const shouldDrawMacroGrid = effectiveMacro > 0.35 && pixelCount <= 2073600;
+      if (shouldDrawMacroGrid) {
         outCtx.save();
-        outCtx.globalAlpha = Math.min(0.14, effectiveMacro * 0.12);
+        outCtx.globalAlpha = Math.min(0.1, effectiveMacro * 0.08);
         outCtx.fillStyle = "rgb(0 0 0)";
         for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
         for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
