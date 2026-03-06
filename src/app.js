@@ -32,7 +32,7 @@ const FALLBACK_PRESETS = {
   "PVM/BVM": {
     scanlineStrength: 0.25,
     phosphorMask: 0.6,
-    barrelDistortion: -0.048,
+    barrelDistortion: -0.031,
     bloom: 0.2,
     flicker: 0.12,
     chromaticAberration: 0.08,
@@ -62,7 +62,7 @@ const FALLBACK_PRESETS = {
   Arcade: {
     scanlineStrength: 0.4,
     phosphorMask: 0.45,
-    barrelDistortion: -0.072,
+    barrelDistortion: -0.047,
     bloom: 0.55,
     flicker: 0.2,
     chromaticAberration: 0.2,
@@ -92,7 +92,7 @@ const FALLBACK_PRESETS = {
   "Late-80s Home VHS": {
     scanlineStrength: 0.52,
     phosphorMask: 0.26,
-    barrelDistortion: -0.144,
+    barrelDistortion: -0.094,
     bloom: 0.62,
     flicker: 0.16,
     chromaticAberration: 0.51,
@@ -122,7 +122,7 @@ const FALLBACK_PRESETS = {
   "90s Rental Tape (3rd Gen Dub)": {
     scanlineStrength: 0.59,
     phosphorMask: 0.2,
-    barrelDistortion: -0.168,
+    barrelDistortion: -0.109,
     bloom: 0.7,
     flicker: 0.2,
     chromaticAberration: 0.62,
@@ -152,7 +152,7 @@ const FALLBACK_PRESETS = {
   "Hi8 Vacation Cam": {
     scanlineStrength: 0.41,
     phosphorMask: 0.32,
-    barrelDistortion: -0.09,
+    barrelDistortion: -0.058,
     bloom: 0.46,
     flicker: 0.11,
     chromaticAberration: 0.24,
@@ -182,7 +182,7 @@ const FALLBACK_PRESETS = {
   "MiniDV Family Cam (2002)": {
     scanlineStrength: 0.3,
     phosphorMask: 0.44,
-    barrelDistortion: -0.06,
+    barrelDistortion: -0.039,
     bloom: 0.32,
     flicker: 0.08,
     chromaticAberration: 0.17,
@@ -212,7 +212,7 @@ const FALLBACK_PRESETS = {
   "Off-Air Analog Broadcast": {
     scanlineStrength: 0.45,
     phosphorMask: 0.38,
-    barrelDistortion: -0.126,
+    barrelDistortion: -0.082,
     bloom: 0.52,
     flicker: 0.14,
     chromaticAberration: 0.37,
@@ -242,7 +242,7 @@ const FALLBACK_PRESETS = {
   "Public Access Archive": {
     scanlineStrength: 0.43,
     phosphorMask: 0.34,
-    barrelDistortion: -0.108,
+    barrelDistortion: -0.07,
     bloom: 0.48,
     flicker: 0.13,
     chromaticAberration: 0.33,
@@ -272,7 +272,7 @@ const FALLBACK_PRESETS = {
   "Early Web Rip (2006)": {
     scanlineStrength: 0.37,
     phosphorMask: 0.28,
-    barrelDistortion: -0.06,
+    barrelDistortion: -0.039,
     bloom: 0.27,
     flicker: 0.06,
     chromaticAberration: 0.2,
@@ -302,7 +302,7 @@ const FALLBACK_PRESETS = {
   "Security Camera Dump": {
     scanlineStrength: 0.46,
     phosphorMask: 0.22,
-    barrelDistortion: -0.036,
+    barrelDistortion: -0.023,
     bloom: 0.22,
     flicker: 0.09,
     chromaticAberration: 0.14,
@@ -332,7 +332,7 @@ const FALLBACK_PRESETS = {
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
     phosphorMask: 0.24,
-    barrelDistortion: -0.156,
+    barrelDistortion: -0.101,
     bloom: 0.76,
     flicker: 0.24,
     chromaticAberration: 0.58,
@@ -362,7 +362,7 @@ const FALLBACK_PRESETS = {
   "Damaged Archive Recovery": {
     scanlineStrength: 0.49,
     phosphorMask: 0.27,
-    barrelDistortion: -0.114,
+    barrelDistortion: -0.074,
     bloom: 0.58,
     flicker: 0.18,
     chromaticAberration: 0.46,
