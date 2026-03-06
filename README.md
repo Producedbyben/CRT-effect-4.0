@@ -1,6 +1,6 @@
-# CRT Effect Renderer (Local + Static Hosting)
+# Lost Media Emulator (Local + Static Hosting)
 
-A lightweight browser tool that loads an image, previews an animated CRT simulation, and exports an MP4 clip.
+A lightweight browser tool that loads an image, previews an animated lost-media simulation pipeline (including CRT display emulation), and exports an MP4 clip.
 
 ## Open locally
 
