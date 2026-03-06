@@ -944,6 +944,40 @@ function getTargetBitrate(width, height, fps) {
   return Math.max(5_000_000, Math.min(35_000_000, estimated));
 }
 
+function getEvenFrameSize(width, height) {
+  const safeWidth = Math.max(1, Math.floor(width));
+  const safeHeight = Math.max(1, Math.floor(height));
+  return {
+    width: safeWidth % 2 === 0 ? safeWidth : safeWidth + 1,
+    height: safeHeight % 2 === 0 ? safeHeight : safeHeight + 1,
+  };
+}
+
+const MAX_AVC_CODED_PIXELS = 9_437_184;
+
+function fitExportSize(width, height, { maxEdge = 0, maxPixels = 0, forceEven = false } = {}) {
+  let outWidth = Math.max(1, Math.floor(width));
+  let outHeight = Math.max(1, Math.floor(height));
+
+  if (maxEdge > 0) {
+    const scale = Math.min(1, maxEdge / Math.max(outWidth, outHeight));
+    outWidth = Math.max(1, Math.round(outWidth * scale));
+    outHeight = Math.max(1, Math.round(outHeight * scale));
+  }
+
+  if (maxPixels > 0 && outWidth * outHeight > maxPixels) {
+    const scale = Math.sqrt(maxPixels / (outWidth * outHeight));
+    outWidth = Math.max(1, Math.floor(outWidth * scale));
+    outHeight = Math.max(1, Math.floor(outHeight * scale));
+  }
+
+  if (forceEven) {
+    return getEvenFrameSize(outWidth, outHeight);
+  }
+
+  return { width: outWidth, height: outHeight };
+}
+
 async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, getRenderOptions }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
@@ -958,6 +992,8 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   throwIfAborted();
   const width = canvas.width;
   const height = canvas.height;
+  const encodedSize = getEvenFrameSize(width, height);
+  const encodingNeedsPadding = encodedSize.width !== width || encodedSize.height !== height;
   const totalFrames = Math.max(1, Math.floor(duration * fps));
 
   const renderCanvas = document.createElement("canvas");
@@ -965,10 +1001,15 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   renderCanvas.height = height;
   const ctx = renderCanvas.getContext("2d", { alpha: false });
 
+  const encodeCanvas = encodingNeedsPadding ? document.createElement("canvas") : renderCanvas;
+  encodeCanvas.width = encodedSize.width;
+  encodeCanvas.height = encodedSize.height;
+  const encodeCtx = encodingNeedsPadding ? encodeCanvas.getContext("2d", { alpha: false }) : null;
+
   const target = new ArrayBufferTarget();
   const muxer = new Muxer({
     target,
-    video: { codec: "avc", width, height },
+    video: { codec: "avc", width: encodedSize.width, height: encodedSize.height },
     fastStart: "in-memory",
   });
 
@@ -980,14 +1021,14 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     },
   });
 
-  const codec = getAvcCodecForResolution(width, height);
-  const bitrate = Math.max(250_000, Math.round(getTargetBitrate(width, height, fps) * Math.max(0.5, bitrateScale)));
+  const codec = getAvcCodecForResolution(encodedSize.width, encodedSize.height);
+  const bitrate = Math.max(250_000, Math.round(getTargetBitrate(encodedSize.width, encodedSize.height, fps) * Math.max(0.5, bitrateScale)));
 
   try {
     encoder.configure({
       codec,
-      width,
-      height,
+      width: encodedSize.width,
+      height: encodedSize.height,
       framerate: fps,
       bitrate,
       latencyMode: "quality",
@@ -997,8 +1038,8 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     console.warn("Hardware-accelerated encoder config unavailable; falling back.", error);
     encoder.configure({
       codec,
-      width,
-      height,
+      width: encodedSize.width,
+      height: encodedSize.height,
       framerate: fps,
       bitrate,
       latencyMode: "quality",
@@ -1015,7 +1056,13 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     if (beforeRenderFrame) await beforeRenderFrame(t, frame, fps);
     renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
 
-    const videoFrame = new VideoFrame(renderCanvas, {
+    if (encodingNeedsPadding && encodeCtx) {
+      encodeCtx.fillStyle = "#000";
+      encodeCtx.fillRect(0, 0, encodeCanvas.width, encodeCanvas.height);
+      encodeCtx.drawImage(renderCanvas, 0, 0);
+    }
+
+    const videoFrame = new VideoFrame(encodeCanvas, {
       timestamp: Math.round((frame * 1_000_000) / fps),
       duration: Math.round(1_000_000 / fps),
     });
@@ -1444,6 +1491,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     document.getElementById("duration").disabled = isExporting;
     document.getElementById("exportQuality").disabled = isExporting;
     exportFormatControl?.setDisabled(isExporting);
+    exportResolutionControl?.setDisabled(isExporting);
     updateExportControlsState();
   }
 
@@ -1455,7 +1503,9 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     const totalFrames = Math.max(1, Math.round(fps * duration));
     const workloadScore = totalFrames * quality;
     const speedHint = workloadScore > 900 ? "Render load: heavy" : (workloadScore > 420 ? "Render load: medium" : "Render load: light");
-    exportEstimateEl.textContent = `Export summary: ${totalFrames} frames at ${fps} FPS (${duration.toFixed(1)}s) • ${speedHint}.`;
+    const maxEdge = getExportMaxEdge();
+    const limited = fitExportSize(canvas.width, canvas.height, { maxEdge });
+    exportEstimateEl.textContent = `Export summary: ${totalFrames} frames at ${fps} FPS (${duration.toFixed(1)}s) • ${limited.width}x${limited.height} • ${speedHint}.`;
   }
 
   let previewModeControl;
@@ -1464,6 +1514,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let previewMaxPixelsControl;
   let presetControl;
   let exportFormatControl;
+  let exportResolutionControl;
   let osdFontPresetControl;
   let osdStyleControl;
 
@@ -1481,6 +1532,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function getPreviewMaxPixels() {
     return Math.max(0, Number(previewMaxPixelsControl?.getValue()) || 0);
+  }
+
+  function getExportMaxEdge() {
+    return Math.max(0, Number(exportResolutionControl?.getValue()) || 0);
   }
 
   function markPreviewDirty() {
@@ -2020,6 +2075,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       const includeOriginalAudio = document.getElementById("includeOriginalAudio").checked;
       const selectedFormat = exportFormatControl?.getValue() || "mp4";
       const mustUseRealtimeAudio = includeOriginalAudio && loadedSourceType === "video";
+      const maxExportEdge = getExportMaxEdge();
+      const baseExportSize = fitExportSize(canvas.width, canvas.height, { maxEdge: maxExportEdge });
+      const mp4ExportSize = fitExportSize(baseExportSize.width, baseExportSize.height, { maxPixels: MAX_AVC_CODED_PIXELS, forceEven: true });
+      const exportSize = selectedFormat === "webm" || mustUseRealtimeAudio ? baseExportSize : mp4ExportSize;
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = exportSize.width;
+      exportCanvas.height = exportSize.height;
+
+      if ((selectedFormat !== "webm" && !mustUseRealtimeAudio) && (baseExportSize.width !== mp4ExportSize.width || baseExportSize.height !== mp4ExportSize.height)) {
+        setStatus(`AVC size limit hit. Exporting at ${mp4ExportSize.width}x${mp4ExportSize.height} instead.`, "warn");
+      }
 
       if (selectedFormat === "mp4" && mustUseRealtimeAudio) {
         setStatus("Audio passthrough requires WebM realtime export. Switching format for this render.", "warn");
@@ -2027,7 +2093,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
       if (selectedFormat === "webm" || mustUseRealtimeAudio) {
         await exportWebmRealtime({
-          canvas,
+          canvas: exportCanvas,
           renderer,
           params: readParams(),
           fps,
@@ -2046,7 +2112,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         });
       } else {
         await exportMp4({
-          canvas,
+          canvas: exportCanvas,
           renderer,
           params: readParams(),
           fps,
@@ -2181,6 +2247,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   exportFormatControl = setupSelectionBox("exportFormat", {
     onChange: () => {
       progressEl.value = 0;
+    },
+  });
+
+  exportResolutionControl = setupSelectionBox("exportResolution", {
+    valueParser: Number,
+    onChange: () => {
+      progressEl.value = 0;
+      updateExportEstimate();
     },
   });
 

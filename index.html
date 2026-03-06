@@ -104,6 +104,16 @@
               </div>
             </label>
             <label>Quality <input id="exportQuality" type="number" min="0.5" max="2.5" step="0.1" value="1" /></label>
+            <label>Resolution
+              <div id="exportResolution" class="selection-box selection-inline" role="radiogroup" aria-label="Export resolution">
+                <button type="button" data-value="0" data-selected="true">Source</button>
+                <button type="button" data-value="2160">2160p</button>
+                <button type="button" data-value="1440">1440p</button>
+                <button type="button" data-value="1080">1080p</button>
+                <button type="button" data-value="720">720p</button>
+                <button type="button" data-value="480">480p</button>
+              </div>
+            </label>
             <label class="checkbox-row dock-audio"><input id="includeOriginalAudio" type="checkbox" /> Include original audio</label>
           </div>
           <div class="actions two-up export-actions">
