@@ -8,115 +8,54 @@
   </head>
   <body>
     <main class="app">
-      <section class="controls">
+      <aside class="left-rail">
         <h1>CRT Effect Renderer</h1>
-
-        <details class="panel" open>
-          <summary>Source & presets</summary>
+        <section class="panel" aria-label="Source and presets">
+          <header class="panel-header">Source</header>
           <div class="panel-body">
             <label class="file-input">
               <span>Image / Video source</span>
               <input id="imageInput" type="file" accept="image/*,video/*,.mov,.webm,.mp4" />
             </label>
-
-            <label>Preset
-              <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
-            </label>
+            <div class="row preset-headline">
+              <label>Preset library</label>
+              <span id="presetDirtyTag" class="dirty-tag" hidden>Modified</span>
+            </div>
+            <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
+            <div class="actions two-up compact-actions">
+              <button id="resetParamsBtn" type="button">Reset look</button>
+              <button id="resetSourceBtn" type="button">Reset source</button>
+            </div>
           </div>
-        </details>
+        </section>
 
-        <details class="panel" open>
-          <summary>CRT effect</summary>
-          <div class="panel-body">
+        <section class="panel" aria-label="Quick adjustments">
+          <header class="panel-header">Quick adjust</header>
+          <div class="panel-body quick-grid">
             <label>Scanline strength <span class="range-control"><input id="scanlineStrength" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
-            <label>Phosphor mask <span class="range-control"><input id="phosphorMask" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
-            <label>Barrel distortion <span class="range-control"><input id="barrelDistortion" type="range" min="-0.8" max="0.8" step="0.01" value="0" /></span></label>
             <label>Bloom <span class="range-control"><input id="bloom" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Flicker <span class="range-control"><input id="flicker" type="range" min="0" max="1" step="0.01" value="0.22" /></span></label>
-            <label>Chromatic aberration <span class="range-control"><input id="chromaticAberration" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Noise <span class="range-control"><input id="noise" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
-            <label>Pixel size <span class="range-control"><input id="pixelSize" type="range" min="1" max="8" step="1" value="1" /></span></label>
-            <label>Phosphor mask scale <span class="range-control"><input id="maskScale" type="range" min="1" max="4" step="0.1" value="1" /></span></label>
-            <button id="resetParamsBtn" type="button">Reset parameters</button>
           </div>
-        </details>
+        </section>
+      </aside>
 
-
-        <details class="panel">
-          <summary>Advanced</summary>
-          <div class="panel-body controls-grid">
-            <label>Line jitter <span class="range-control"><input id="advancedLineJitter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Timebase wobble <span class="range-control"><input id="advancedTimebaseWobble" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Head-switching noise <span class="range-control"><input id="advancedHeadSwitching" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Luma/chroma delay <span class="range-control"><input id="advancedChromaDelay" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Cross-color artifacts <span class="range-control"><input id="advancedCrossColor" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Dropouts/tracking <span class="range-control"><input id="advancedDropouts" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Ghosting/trailing <span class="range-control"><input id="advancedGhosting" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Interlacing <span class="range-control"><input id="advancedInterlacing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Frame stutter/drop <span class="range-control"><input id="advancedFrameStutter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>RF interference bands <span class="range-control"><input id="advancedRfInterference" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Exposure pumping <span class="range-control"><input id="advancedExposurePump" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>White balance drift <span class="range-control"><input id="advancedWhiteBalanceDrift" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Focus breathing <span class="range-control"><input id="advancedFocusBreathing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Tape crease events <span class="range-control"><input id="advancedTapeCrease" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>CCTV monochrome <span class="range-control"><input id="advancedCctvMonochrome" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-          </div>
-        </details>
-
-        <details class="panel" open>
-          <summary>OSD effects</summary>
-          <div class="panel-body">
-            <label>Timestamp OSD intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>OSD style (0-3) <span class="range-control"><input id="advancedOSDStyle" type="range" min="0" max="3" step="1" value="0" /></span></label>
-            <label>Start date/time <input id="osdStartDateTime" type="datetime-local" value="1998-10-31T22:48:00" /></label>
-            <label class="checkbox-row"><input id="osdCountWithExport" type="checkbox" checked /> Timecode counts up with export/playback</label>
-            <div class="row">
-              <label>Primary text colour <input id="osdPrimaryColor" type="color" value="#ffa84a" /></label>
-              <label>Accent colour <input id="osdAccentColor" type="color" value="#ff3a3a" /></label>
-            </div>
-            <label>Era font
-              <div id="osdFontPreset" class="selection-box selection-box-wrap" role="radiogroup" aria-label="OSD font preset">
-                <button type="button" data-value="vhs" data-selected="true">VHS 80s/90s</button>
-                <button type="button" data-value="camcorder">Camcorder 90s</button>
-                <button type="button" data-value="cctv">CCTV/monitor</button>
-                <button type="button" data-value="broadcast">Broadcast 2000s</button>
-              </div>
-            </label>
-          </div>
-        </details>
-
-        <details class="panel" open>
-          <summary>Preview</summary>
-          <div class="panel-body video-controls">
+      <section class="preview-workspace">
+        <header class="workspace-toolbar panel">
+          <div class="toolbar-left">
             <label>Preview mode
               <div id="previewMode" class="selection-box" role="radiogroup" aria-label="Preview mode">
                 <button type="button" data-value="still" data-selected="true">Still</button>
                 <button type="button" data-value="playback">Playback</button>
               </div>
             </label>
-            <div class="row">
-              <label>Preview FPS <input id="previewFps" type="number" value="15" min="1" max="60" /></label>
-              <label>Preview scale
-                <div id="previewScale" class="selection-box selection-inline" role="radiogroup" aria-label="Preview scale">
-                  <button type="button" data-value="1" data-selected="true">100%</button>
-                  <button type="button" data-value="0.75">75%</button>
-                  <button type="button" data-value="0.5">50%</button>
-                  <button type="button" data-value="0.33">33%</button>
-                </div>
-              </label>
-            </div>
-            <label>Preview quality
-              <div id="previewMaxPixels" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preview quality">
-                <button type="button" data-value="307200">Fast</button>
-                <button type="button" data-value="921600">Balanced</button>
-                <button type="button" data-value="2073600">High</button>
-                <button type="button" data-value="0" data-selected="true">Unlimited</button>
+            <label>Preview scale
+              <div id="previewScale" class="selection-box selection-inline" role="radiogroup" aria-label="Preview scale">
+                <button type="button" data-value="1" data-selected="true">100%</button>
+                <button type="button" data-value="0.75">75%</button>
+                <button type="button" data-value="0.5">50%</button>
+                <button type="button" data-value="0.33">33%</button>
               </div>
-            </label>
-            <label>Preview frame (s)
-              <span class="range-control"><input id="previewTime" type="range" min="0" max="0" step="0.01" value="0" disabled /></span>
             </label>
             <label>Source downsample
               <div id="sourceScale" class="selection-box selection-inline" role="radiogroup" aria-label="Source downsample">
@@ -128,40 +67,130 @@
               </div>
             </label>
           </div>
-        </details>
+          <div class="toolbar-right actions two-up compact-actions">
+            <button id="compareHoldBtn" type="button">Hold for original</button>
+            <button id="downloadStillBtn" type="button">Download still</button>
+          </div>
+        </header>
 
-        <details class="panel" open>
-          <summary>Export</summary>
-          <div class="panel-body">
-            <div class="row">
-              <label>FPS <input id="fps" type="number" value="30" min="12" max="120" /></label>
-              <label>Duration (s) <input id="duration" type="number" value="4" min="1" max="20" step="0.5" /></label>
-            </div>
+        <section class="preview panel">
+          <canvas id="previewCanvas" width="960" height="540"></canvas>
+          <div class="timeline-row">
+            <label>Preview frame (s)
+              <span class="range-control"><input id="previewTime" type="range" min="0" max="0" step="0.01" value="0" disabled /></span>
+            </label>
+            <label>Preview FPS <input id="previewFps" type="number" value="15" min="1" max="60" /></label>
+            <label>Preview quality
+              <div id="previewMaxPixels" class="selection-box selection-inline" role="radiogroup" aria-label="Preview quality">
+                <button type="button" data-value="307200">Fast</button>
+                <button type="button" data-value="921600">Balanced</button>
+                <button type="button" data-value="2073600">High</button>
+                <button type="button" data-value="0" data-selected="true">Unlimited</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <footer class="export-dock panel">
+          <div class="dock-grid">
+            <label>FPS <input id="fps" type="number" value="30" min="12" max="120" /></label>
+            <label>Duration (s) <input id="duration" type="number" value="4" min="1" max="20" step="0.5" /></label>
             <label>Format
               <div id="exportFormat" class="selection-box selection-inline" role="radiogroup" aria-label="Export format">
-                <button type="button" data-value="mp4" data-selected="true">MP4 (fast)</button>
+                <button type="button" data-value="mp4" data-selected="true">MP4</button>
                 <button type="button" data-value="webm">WebM</button>
               </div>
             </label>
-            <label>Quality multiplier <input id="exportQuality" type="number" min="0.5" max="2.5" step="0.1" value="1" /></label>
-            <label class="checkbox-row"><input id="includeOriginalAudio" type="checkbox" /> Include original audio (video sources)</label>
-            <p class="export-note">Audio passthrough uses realtime WebM export for best compatibility.</p>
-            <div class="actions">
-              <button id="exportBtn">Export</button>
-              <button id="downloadStillBtn" type="button">Download still</button>
-              <button id="cancelExportBtn" type="button" disabled>Cancel export</button>
-              <button id="resetSourceBtn" type="button">Reset source</button>
-            </div>
+            <label>Quality <input id="exportQuality" type="number" min="0.5" max="2.5" step="0.1" value="1" /></label>
+            <label class="checkbox-row dock-audio"><input id="includeOriginalAudio" type="checkbox" /> Include original audio</label>
           </div>
-        </details>
-
-        <div id="status" class="status">Load an image to begin.</div>
-        <progress id="progress" max="1" value="0"></progress>
+          <div class="actions two-up">
+            <button id="exportBtn">Export video</button>
+            <button id="cancelExportBtn" type="button" disabled>Cancel</button>
+          </div>
+          <p class="export-note">Audio passthrough uses realtime WebM export for best compatibility.</p>
+          <div id="status" class="status">Load an image to begin.</div>
+          <progress id="progress" max="1" value="0"></progress>
+        </footer>
       </section>
 
-      <section class="preview">
-        <canvas id="previewCanvas" width="960" height="540"></canvas>
-      </section>
+      <aside class="right-inspector">
+        <div class="tab-bar" role="tablist" aria-label="Inspector sections">
+          <button class="tab-btn" data-tab="core" data-selected="true" role="tab">Core look</button>
+          <button class="tab-btn" data-tab="degrade" role="tab">Degrade</button>
+          <button class="tab-btn" data-tab="osd" role="tab">OSD</button>
+        </div>
+
+        <section class="inspector-tab" data-panel="core">
+          <section class="panel" open>
+            <header class="panel-header">Core CRT look</header>
+            <div class="panel-body controls-grid">
+              <label>Phosphor mask <span class="range-control"><input id="phosphorMask" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
+              <label>Barrel distortion <span class="range-control"><input id="barrelDistortion" type="range" min="-0.8" max="0.8" step="0.01" value="0" /></span></label>
+              <label>Chromatic aberration <span class="range-control"><input id="chromaticAberration" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
+              <label>Pixel size <input id="pixelSize" type="number" min="1" max="8" step="1" value="1" /></label>
+              <label>Phosphor mask scale <input id="maskScale" type="number" min="1" max="4" step="0.1" value="1" /></label>
+            </div>
+          </section>
+        </section>
+
+        <section class="inspector-tab" data-panel="degrade" hidden>
+          <section class="panel">
+            <header class="panel-header">Distortion & degradation</header>
+            <div class="panel-body controls-grid">
+              <label>Line jitter <span class="range-control"><input id="advancedLineJitter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Timebase wobble <span class="range-control"><input id="advancedTimebaseWobble" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Head-switching noise <span class="range-control"><input id="advancedHeadSwitching" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Luma/chroma delay <span class="range-control"><input id="advancedChromaDelay" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Cross-color artifacts <span class="range-control"><input id="advancedCrossColor" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Dropouts/tracking <span class="range-control"><input id="advancedDropouts" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Ghosting/trailing <span class="range-control"><input id="advancedGhosting" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Interlacing <span class="range-control"><input id="advancedInterlacing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Frame stutter/drop <span class="range-control"><input id="advancedFrameStutter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>RF interference bands <span class="range-control"><input id="advancedRfInterference" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Exposure pumping <span class="range-control"><input id="advancedExposurePump" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>White balance drift <span class="range-control"><input id="advancedWhiteBalanceDrift" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Focus breathing <span class="range-control"><input id="advancedFocusBreathing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Tape crease events <span class="range-control"><input id="advancedTapeCrease" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>CCTV monochrome <span class="range-control"><input id="advancedCctvMonochrome" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+            </div>
+          </section>
+        </section>
+
+        <section class="inspector-tab" data-panel="osd" hidden>
+          <section class="panel">
+            <header class="panel-header">Overlays & OSD</header>
+            <div class="panel-body">
+              <label>Timestamp intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>OSD style
+                <div id="advancedOSDStyleSelect" class="selection-box selection-inline" role="radiogroup" aria-label="OSD style">
+                  <button type="button" data-value="0" data-selected="true">Classic</button>
+                  <button type="button" data-value="1">Digital</button>
+                  <button type="button" data-value="2">Tape Cam</button>
+                  <button type="button" data-value="3">Broadcast</button>
+                </div>
+                <input id="advancedOSDStyle" type="range" min="0" max="3" step="1" value="0" hidden />
+              </label>
+              <label>Start date/time <input id="osdStartDateTime" type="datetime-local" value="1998-10-31T22:48:00" /></label>
+              <label class="checkbox-row"><input id="osdCountWithExport" type="checkbox" checked /> Timecode counts up with export/playback</label>
+              <div class="row">
+                <label>Primary text colour <input id="osdPrimaryColor" type="color" value="#ffa84a" /></label>
+                <label>Accent colour <input id="osdAccentColor" type="color" value="#ff3a3a" /></label>
+              </div>
+              <label>Era font
+                <div id="osdFontPreset" class="selection-box selection-box-wrap" role="radiogroup" aria-label="OSD font preset">
+                  <button type="button" data-value="vhs" data-selected="true">VHS 80s/90s</button>
+                  <button type="button" data-value="camcorder">Camcorder 90s</button>
+                  <button type="button" data-value="cctv">CCTV/monitor</button>
+                  <button type="button" data-value="broadcast">Broadcast 2000s</button>
+                </div>
+              </label>
+            </div>
+          </section>
+        </section>
+      </aside>
     </main>
 
     <script src="./src/app.js"></script>
