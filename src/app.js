@@ -277,6 +277,7 @@ const FALLBACK_PRESETS = {
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
     advancedMacroBlocking: 0,
+    maskType: "none",
   },
   "Early Web Rip (2006)": {
     scanlineStrength: 0,
@@ -308,6 +309,7 @@ const FALLBACK_PRESETS = {
     advancedQuantization: 0.46,
     advancedGenerationLoss: 0.18,
     advancedMacroBlocking: 0.34,
+    maskType: "none",
   },
   "Security Camera Dump": {
     scanlineStrength: 0,
@@ -339,6 +341,7 @@ const FALLBACK_PRESETS = {
     advancedQuantization: 0.42,
     advancedGenerationLoss: 0.2,
     advancedMacroBlocking: 0.3,
+    maskType: "none",
   },
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
@@ -370,6 +373,7 @@ const FALLBACK_PRESETS = {
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
     advancedMacroBlocking: 0,
+    maskType: "phosphor",
   },
   "Damaged Archive Recovery": {
     scanlineStrength: 0.49,
@@ -401,6 +405,195 @@ const FALLBACK_PRESETS = {
     advancedQuantization: 0.4,
     advancedGenerationLoss: 0.79,
     advancedMacroBlocking: 0.58,
+    maskType: "dot",
+  },
+  "Retro Pixel LCD": {
+    scanlineStrength: 0.08,
+    phosphorMask: 0.04,
+    barrelDistortion: 0,
+    bloom: 0.08,
+    flicker: 0.02,
+    chromaticAberration: 0.03,
+    noise: 0.04,
+    pixelSize: 1,
+    maskScale: 1,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
+    maskType: "none",
+  },
+  "Cyberpunk OLED": {
+    scanlineStrength: 0.14,
+    phosphorMask: 0.12,
+    barrelDistortion: -0.012,
+    bloom: 0.68,
+    flicker: 0.03,
+    chromaticAberration: 0.06,
+    noise: 0.05,
+    pixelSize: 1,
+    maskScale: 1,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0.04,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
+    maskType: "aperture",
+  },
+  "Streaming Compression": {
+    scanlineStrength: 0.18,
+    phosphorMask: 0.1,
+    barrelDistortion: 0,
+    bloom: 0.2,
+    flicker: 0.03,
+    chromaticAberration: 0.07,
+    noise: 0.12,
+    pixelSize: 2,
+    maskScale: 1.1,
+    advancedLineJitter: 0.01,
+    advancedTimebaseWobble: 0,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0.02,
+    advancedCrossColor: 0,
+    advancedDropouts: 0.08,
+    advancedGhosting: 0.06,
+    advancedInterlacing: 0.04,
+    advancedFrameStutter: 0.12,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0.04,
+    advancedWhiteBalanceDrift: 0.03,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
+    advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0.3,
+    advancedGenerationLoss: 0.12,
+    advancedMacroBlocking: 0.32,
+    maskType: "none",
+  },
+  "Digital Surveillance": {
+    scanlineStrength: 0.22,
+    phosphorMask: 0.16,
+    barrelDistortion: 0,
+    bloom: 0.12,
+    flicker: 0.02,
+    chromaticAberration: 0.04,
+    noise: 0.18,
+    pixelSize: 3,
+    maskScale: 1.2,
+    advancedLineJitter: 0.02,
+    advancedTimebaseWobble: 0.02,
+    advancedHeadSwitching: 0,
+    advancedChromaDelay: 0.03,
+    advancedCrossColor: 0,
+    advancedDropouts: 0.12,
+    advancedGhosting: 0.03,
+    advancedInterlacing: 0.12,
+    advancedFrameStutter: 0.26,
+    advancedRfInterference: 0.08,
+    advancedExposurePump: 0.06,
+    advancedWhiteBalanceDrift: 0.04,
+    advancedFocusBreathing: 0.04,
+    advancedTapeCrease: 0.06,
+    advancedTimestampOSD: 0.42,
+    advancedOSDStyle: 3,
+    advancedCctvMonochrome: 0.36,
+    advancedQuantization: 0.24,
+    advancedGenerationLoss: 0.08,
+    advancedMacroBlocking: 0.18,
+    maskType: "none",
+  },
+  "Silent Film 1920s": {
+    scanlineStrength: 0,
+    phosphorMask: 0,
+    bloom: 0.08,
+    flicker: 0.24,
+    chromaticAberration: 0,
+    noise: 0.34,
+    pixelSize: 2,
+    advancedFrameStutter: 0.28,
+    advancedExposurePump: 0.26,
+    advancedQuantization: 0.52,
+    advancedCctvMonochrome: 0.85,
+    maskType: "none",
+  },
+  "Technicolor Print 1950s": {
+    scanlineStrength: 0.04,
+    phosphorMask: 0.08,
+    barrelDistortion: -0.01,
+    bloom: 0.36,
+    flicker: 0.05,
+    chromaticAberration: 0.12,
+    noise: 0.14,
+    pixelSize: 1,
+    advancedGhosting: 0.08,
+    advancedExposurePump: 0.12,
+    advancedWhiteBalanceDrift: 0.1,
+    maskType: "dot",
+  },
+  "Super 8 Home Reel 1970s": {
+    scanlineStrength: 0.06,
+    phosphorMask: 0.04,
+    barrelDistortion: -0.02,
+    bloom: 0.42,
+    flicker: 0.18,
+    chromaticAberration: 0.18,
+    noise: 0.29,
+    pixelSize: 2,
+    advancedFrameStutter: 0.2,
+    advancedExposurePump: 0.34,
+    advancedWhiteBalanceDrift: 0.24,
+    advancedFocusBreathing: 0.28,
+    advancedQuantization: 0.24,
+    maskType: "none",
+  },
+  "16mm Broadcast Kinescope": {
+    scanlineStrength: 0.22,
+    phosphorMask: 0.18,
+    barrelDistortion: -0.046,
+    bloom: 0.31,
+    flicker: 0.08,
+    chromaticAberration: 0.11,
+    noise: 0.22,
+    pixelSize: 2,
+    advancedLineJitter: 0.09,
+    advancedTimebaseWobble: 0.14,
+    advancedGhosting: 0.12,
+    advancedInterlacing: 0.2,
+    advancedDropouts: 0.08,
+    maskType: "slot",
   },
   "Retro Pixel LCD": {
     scanlineStrength: 0.08,
@@ -631,6 +824,7 @@ class CRTRenderer {
     const ca = params.chromaticAberration;
     const scan = params.scanlineStrength;
     const mask = params.phosphorMask;
+    const maskType = typeof params.maskType === "string" ? params.maskType : "phosphor";
     const pixelSize = Math.max(1, Number(params.pixelSize) || 1);
     const maskScale = Math.max(1, Number(params.maskScale) || 1);
     const pixelInfluence = 1 + (pixelSize - 1) * 0.22;
@@ -742,12 +936,41 @@ class CRTRenderer {
         const blend = Math.min(0.45, bleed);
 
         const maskX = Math.floor(x / maskScale);
-        const triad = maskX % 3;
         const boost = 1 + mask * 0.52;
         const dim = 1 - mask * 0.32;
-        const rMask = triad === 0 ? boost : dim;
-        const gMask = triad === 1 ? boost : dim;
-        const bMask = triad === 2 ? boost : dim;
+        let rMask = 1;
+        let gMask = 1;
+        let bMask = 1;
+
+        if (maskType === "phosphor") {
+          const triad = maskX % 3;
+          rMask = triad === 0 ? boost : dim;
+          gMask = triad === 1 ? boost : dim;
+          bMask = triad === 2 ? boost : dim;
+        } else if (maskType === "aperture") {
+          const stripe = maskX % 3;
+          const stripeBoost = 1 + mask * 0.34;
+          const stripeDim = 1 - mask * 0.2;
+          rMask = stripe === 0 ? stripeBoost : stripeDim;
+          gMask = stripe === 1 ? stripeBoost : stripeDim;
+          bMask = stripe === 2 ? stripeBoost : stripeDim;
+        } else if (maskType === "slot") {
+          const slotX = maskX % 6;
+          const slotY = maskY % 4;
+          const slotOpen = slotX < 2 || (slotY & 1 ? slotX >= 2 && slotX < 4 : slotX >= 4);
+          const slotGain = slotOpen ? (1 + mask * 0.28) : (1 - mask * 0.24);
+          rMask = slotGain;
+          gMask = slotGain;
+          bMask = slotGain;
+        } else if (maskType === "dot") {
+          const dotX = (maskX % 6) - 2.5;
+          const dotY = (maskY % 6) - 2.5;
+          const dotDist = Math.sqrt(dotX * dotX + dotY * dotY);
+          const dotGain = 1 + mask * (0.34 - Math.min(0.34, dotDist * 0.08));
+          rMask = dotGain;
+          gMask = dotGain;
+          bMask = dotGain;
+        }
 
         const dither = (BAYER_4X4[maskY & 3][maskX & 3] / 15 - 0.5) * (1.4 + params.noise * 2.2);
 
@@ -1347,6 +1570,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const compareHoldBtn = document.getElementById("compareHoldBtn");
   const compareLockBtn = document.getElementById("compareLockBtn");
   const presetDirtyTag = document.getElementById("presetDirtyTag");
+  const presetIntensityInput = document.getElementById("presetIntensity");
   const exportEstimateEl = document.getElementById("exportEstimate");
 
   const controlIds = [
@@ -1639,6 +1863,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let sourceScaleControl;
   let previewMaxPixelsControl;
   let presetControl;
+  let maskTypeControl;
   let exportFormatControl;
   let exportResolutionControl;
   let osdFontPresetControl;
@@ -1754,6 +1979,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       }
     }
     sourceScaleControl?.setValue("1", { silent: true });
+    if (presetIntensityInput) {
+      presetIntensityInput.value = "1";
+      presetIntensityInput.__syncRangeNumber?.();
+    }
+    maskTypeControl?.setValue("phosphor", { silent: true });
     refreshRendererSource();
     if (loadedSourceType === "video" && isStillPreviewMode()) {
       previewNeedsSeek = true;
@@ -1822,7 +2052,35 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   }
 
   function readParams() {
-    return Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+    const values = Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+    values.maskType = maskTypeControl?.getValue() || "phosphor";
+    return values;
+  }
+
+  function interpolatePresetValues(name, intensity = 1) {
+    const preset = presets[name] || {};
+    const expected = {};
+    for (const id of controlIds) {
+      const slider = document.getElementById(id);
+      const neutral = defaultParamValues && typeof defaultParamValues[id] === "number"
+        ? defaultParamValues[id]
+        : (Number(slider?.defaultValue) || Number(slider?.value) || 0);
+      if (typeof preset[id] === "number") {
+        const min = Number(slider?.min);
+        const max = Number(slider?.max);
+        let value = neutral + (preset[id] - neutral) * intensity;
+        if (Number.isFinite(min)) value = Math.max(min, value);
+        if (Number.isFinite(max)) value = Math.min(max, value);
+        expected[id] = value;
+      } else {
+        expected[id] = neutral;
+      }
+    }
+    return {
+      values: expected,
+      maskType: typeof preset.maskType === "string" ? preset.maskType : "phosphor",
+      keys: controlIds.filter((id) => typeof preset[id] === "number"),
+    };
   }
 
   function readOSDOptions(elapsedSeconds = 0) {
@@ -1836,34 +2094,33 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     };
   }
 
-  function applyPreset(name) {
-    const values = presets[name];
-    if (!values) return;
+  function applyPreset(name, intensity = Number(presetIntensityInput?.value || 1)) {
+    const preset = presets[name];
+    if (!preset) return;
+    const mapped = interpolatePresetValues(name, intensity);
     for (const id of controlIds) {
       const slider = document.getElementById(id);
-      const fallbackValue = defaultParamValues && typeof defaultParamValues[id] === "number" ? defaultParamValues[id] : Number(slider.value) || 0;
-      const nextValue = typeof values[id] === "number" ? values[id] : fallbackValue;
-      slider.value = nextValue;
+      slider.value = mapped.values[id];
       slider.__syncRangeNumber?.();
     }
+    maskTypeControl?.setValue(mapped.maskType, { silent: true });
     activePresetName = name;
     updatePresetDirtyState();
   }
 
   function updatePresetDirtyState() {
     if (!presetDirtyTag) return;
-    const baseline = activePresetName ? presets[activePresetName] : null;
-    if (!baseline) {
+    if (!activePresetName) {
       presetDirtyTag.hidden = true;
       return;
     }
 
+    const intensity = Number(presetIntensityInput?.value || 1);
+    const expected = interpolatePresetValues(activePresetName, intensity);
     const current = readParams();
-    const changed = controlIds.some((id) => {
-      const expected = Number(baseline[id] ?? 0);
-      return Math.abs(Number(current[id] ?? 0) - expected) > 0.0001;
-    });
-    presetDirtyTag.hidden = !changed;
+    const changedSliders = controlIds.some((id) => Math.abs(Number(current[id] ?? 0) - Number(expected.values[id] ?? 0)) > 0.0001);
+    const changedMask = (current.maskType || "phosphor") !== expected.maskType;
+    presetDirtyTag.hidden = !(changedSliders || changedMask);
   }
 
   function initializePresets() {
@@ -1891,7 +2148,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
     presetControl = setupSelectionBox("presetSelect", {
       onChange: (name) => {
-        applyPreset(name);
+        if (presetIntensityInput) {
+          presetIntensityInput.value = "1";
+          presetIntensityInput.__syncRangeNumber?.();
+        }
+        applyPreset(name, 1);
         markPreviewDirty();
         progressEl.value = 0;
         setStatus(`Preset applied: ${name}`, "success");
@@ -1900,7 +2161,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
     const defaultPreset = presets["Consumer TV"] ? "Consumer TV" : names[0];
     presetControl.setValue(defaultPreset, { silent: true });
-    applyPreset(defaultPreset);
+    applyPreset(defaultPreset, Number(presetIntensityInput?.value || 1));
     updatePresetDirtyState();
   }
 
@@ -2297,7 +2558,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     clearLoadedSource();
   });
 
-  for (const id of [...controlIds, "fps", "duration"]) {
+  for (const id of [...controlIds, "fps", "duration", "presetIntensity"]) {
     document.getElementById(id).addEventListener("input", () => {
       markPreviewDirty();
       progressEl.value = 0;
@@ -2310,6 +2571,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     updateExportEstimate();
   });
 
+  presetIntensityInput?.addEventListener("input", () => {
+    if (!activePresetName) return;
+    applyPreset(activePresetName, Number(presetIntensityInput.value || 1));
+    markPreviewDirty();
+    progressEl.value = 0;
+  });
+
   for (const id of ["osdStartDateTime", "osdPrimaryColor", "osdAccentColor", "osdCountWithExport"]) {
     document.getElementById(id)?.addEventListener("input", () => {
       markPreviewDirty();
@@ -2317,7 +2585,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
-  for (const id of [...controlIds, "previewTime"]) {
+  for (const id of [...controlIds, "previewTime", "presetIntensity"]) {
     setupRangeWithNumber(id);
   }
 
@@ -2367,6 +2635,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     onChange: () => {
       markPreviewDirty();
       progressEl.value = 0;
+    },
+  });
+
+  maskTypeControl = setupSelectionBox("maskType", {
+    onChange: () => {
+      markPreviewDirty();
+      progressEl.value = 0;
+      updatePresetDirtyState();
     },
   });
 
