@@ -944,6 +944,15 @@ function getTargetBitrate(width, height, fps) {
   return Math.max(5_000_000, Math.min(35_000_000, estimated));
 }
 
+function getEvenFrameSize(width, height) {
+  const safeWidth = Math.max(1, Math.floor(width));
+  const safeHeight = Math.max(1, Math.floor(height));
+  return {
+    width: safeWidth % 2 === 0 ? safeWidth : safeWidth + 1,
+    height: safeHeight % 2 === 0 ? safeHeight : safeHeight + 1,
+  };
+}
+
 async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, getRenderOptions }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
@@ -958,6 +967,8 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   throwIfAborted();
   const width = canvas.width;
   const height = canvas.height;
+  const encodedSize = getEvenFrameSize(width, height);
+  const encodingNeedsPadding = encodedSize.width !== width || encodedSize.height !== height;
   const totalFrames = Math.max(1, Math.floor(duration * fps));
 
   const renderCanvas = document.createElement("canvas");
@@ -965,10 +976,15 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
   renderCanvas.height = height;
   const ctx = renderCanvas.getContext("2d", { alpha: false });
 
+  const encodeCanvas = encodingNeedsPadding ? document.createElement("canvas") : renderCanvas;
+  encodeCanvas.width = encodedSize.width;
+  encodeCanvas.height = encodedSize.height;
+  const encodeCtx = encodingNeedsPadding ? encodeCanvas.getContext("2d", { alpha: false }) : null;
+
   const target = new ArrayBufferTarget();
   const muxer = new Muxer({
     target,
-    video: { codec: "avc", width, height },
+    video: { codec: "avc", width: encodedSize.width, height: encodedSize.height },
     fastStart: "in-memory",
   });
 
@@ -980,14 +996,14 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     },
   });
 
-  const codec = getAvcCodecForResolution(width, height);
-  const bitrate = Math.max(250_000, Math.round(getTargetBitrate(width, height, fps) * Math.max(0.5, bitrateScale)));
+  const codec = getAvcCodecForResolution(encodedSize.width, encodedSize.height);
+  const bitrate = Math.max(250_000, Math.round(getTargetBitrate(encodedSize.width, encodedSize.height, fps) * Math.max(0.5, bitrateScale)));
 
   try {
     encoder.configure({
       codec,
-      width,
-      height,
+      width: encodedSize.width,
+      height: encodedSize.height,
       framerate: fps,
       bitrate,
       latencyMode: "quality",
@@ -997,8 +1013,8 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     console.warn("Hardware-accelerated encoder config unavailable; falling back.", error);
     encoder.configure({
       codec,
-      width,
-      height,
+      width: encodedSize.width,
+      height: encodedSize.height,
       framerate: fps,
       bitrate,
       latencyMode: "quality",
@@ -1015,7 +1031,13 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
     if (beforeRenderFrame) await beforeRenderFrame(t, frame, fps);
     renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
 
-    const videoFrame = new VideoFrame(renderCanvas, {
+    if (encodingNeedsPadding && encodeCtx) {
+      encodeCtx.fillStyle = "#000";
+      encodeCtx.fillRect(0, 0, encodeCanvas.width, encodeCanvas.height);
+      encodeCtx.drawImage(renderCanvas, 0, 0);
+    }
+
+    const videoFrame = new VideoFrame(encodeCanvas, {
       timestamp: Math.round((frame * 1_000_000) / fps),
       duration: Math.round(1_000_000 / fps),
     });
