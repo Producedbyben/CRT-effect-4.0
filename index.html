@@ -59,11 +59,31 @@
             <label>White balance drift <span class="range-control"><input id="advancedWhiteBalanceDrift" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Focus breathing <span class="range-control"><input id="advancedFocusBreathing" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Tape crease events <span class="range-control"><input id="advancedTapeCrease" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>Timestamp OSD <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
-            <label>OSD style (0-3) <span class="range-control"><input id="advancedOSDStyle" type="range" min="0" max="3" step="1" value="0" /></span></label>
             <label>CCTV monochrome <span class="range-control"><input id="advancedCctvMonochrome" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+          </div>
+        </details>
+
+        <details class="panel" open>
+          <summary>OSD effects</summary>
+          <div class="panel-body">
+            <label>Timestamp OSD intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+            <label>OSD style (0-3) <span class="range-control"><input id="advancedOSDStyle" type="range" min="0" max="3" step="1" value="0" /></span></label>
+            <label>Start date/time <input id="osdStartDateTime" type="datetime-local" value="1998-10-31T22:48:00" /></label>
+            <label class="checkbox-row"><input id="osdCountWithExport" type="checkbox" checked /> Timecode counts up with export/playback</label>
+            <div class="row">
+              <label>Primary text colour <input id="osdPrimaryColor" type="color" value="#ffa84a" /></label>
+              <label>Accent colour <input id="osdAccentColor" type="color" value="#ff3a3a" /></label>
+            </div>
+            <label>Era font
+              <div id="osdFontPreset" class="selection-box selection-box-wrap" role="radiogroup" aria-label="OSD font preset">
+                <button type="button" data-value="vhs" data-selected="true">VHS 80s/90s</button>
+                <button type="button" data-value="camcorder">Camcorder 90s</button>
+                <button type="button" data-value="cctv">CCTV/monitor</button>
+                <button type="button" data-value="broadcast">Broadcast 2000s</button>
+              </div>
+            </label>
           </div>
         </details>
 

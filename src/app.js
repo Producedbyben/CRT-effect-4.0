@@ -447,7 +447,7 @@ class CRTRenderer {
     return a * (1 - ty) + b * ty;
   }
 
-  render(outCtx, width, height, seconds, params, frameIndex, fps) {
+  render(outCtx, width, height, seconds, params, frameIndex, fps, renderOptions = {}) {
     outCtx.clearRect(0, 0, width, height);
     outCtx.fillStyle = "black";
     outCtx.fillRect(0, 0, width, height);
@@ -513,6 +513,18 @@ class CRTRenderer {
     const tapeCrease = Math.max(0, Math.min(1, Number(params.advancedTapeCrease) || 0));
     const timestampOSD = Math.max(0, Math.min(1, Number(params.advancedTimestampOSD) || 0));
     const osdStyle = Math.max(0, Math.min(3, Math.round(Number(params.advancedOSDStyle) || 0)));
+    const osdStartDate = Number.isFinite(Date.parse(renderOptions.osdStartDateTime || "")) ? new Date(renderOptions.osdStartDateTime) : new Date("1998-10-31T22:48:00");
+    const osdCountWithExport = renderOptions.osdCountWithExport !== false;
+    const osdElapsedSeconds = osdCountWithExport ? Math.max(0, Number(renderOptions.osdElapsedSeconds ?? frameSeconds) || 0) : 0;
+    const osdPrimaryColor = renderOptions.osdPrimaryColor || "#ffa84a";
+    const osdAccentColor = renderOptions.osdAccentColor || "#ff3a3a";
+    const osdFontPreset = renderOptions.osdFontPreset || "vhs";
+    const osdFontByPreset = {
+      vhs: '"VCR OSD Mono", "Lucida Console", "Courier New", monospace',
+      camcorder: '"MS Gothic", "Small Fonts", "Tahoma", sans-serif',
+      cctv: '"OCR A Std", "Consolas", "Lucida Console", monospace',
+      broadcast: '"Arial Narrow", "Arial", sans-serif',
+    };
     const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
     const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
     const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
@@ -796,34 +808,34 @@ class CRTRenderer {
     }
 
     if (timestampOSD > 0) {
-      const baseDate = new Date("1998-10-31T22:48:00Z");
-      baseDate.setSeconds(baseDate.getSeconds() + Math.floor(temporalSeconds));
-      const stamp = `${String(baseDate.getUTCMonth() + 1).padStart(2, "0")}/${String(baseDate.getUTCDate()).padStart(2, "0")}/${String(baseDate.getUTCFullYear()).slice(-2)} ${String(baseDate.getUTCHours()).padStart(2, "0")}:${String(baseDate.getUTCMinutes()).padStart(2, "0")}:${String(baseDate.getUTCSeconds()).padStart(2, "0")}`;
+      const stampDate = new Date(osdStartDate.getTime());
+      stampDate.setSeconds(stampDate.getSeconds() + Math.floor(osdElapsedSeconds));
+      const stamp = `${String(stampDate.getMonth() + 1).padStart(2, "0")}/${String(stampDate.getDate()).padStart(2, "0")}/${String(stampDate.getFullYear()).slice(-2)} ${String(stampDate.getHours()).padStart(2, "0")}:${String(stampDate.getMinutes()).padStart(2, "0")}:${String(stampDate.getSeconds()).padStart(2, "0")}`;
       const flickerAlpha = 0.35 + seededNoise(temporalFrame, temporalSeconds, 113) * 0.45;
       const osdAlpha = Math.min(0.9, timestampOSD * flickerAlpha);
       const padX = Math.floor(width * 0.03);
       const padY = Math.floor(height * 0.95);
 
       outCtx.save();
-      outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px monospace`;
+      outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px ${osdFontByPreset[osdFontPreset] || osdFontByPreset.vhs}`;
       outCtx.textBaseline = "bottom";
       outCtx.globalAlpha = osdAlpha;
 
       if (osdStyle === 0) {
-        outCtx.fillStyle = "rgb(255 168 74)";
+        outCtx.fillStyle = osdPrimaryColor;
         outCtx.fillText(stamp, padX, padY);
       } else if (osdStyle === 1) {
         outCtx.fillStyle = "rgb(237 244 255)";
         outCtx.fillText(stamp, padX, padY);
-        outCtx.fillStyle = "rgb(255 58 58)";
+        outCtx.fillStyle = osdAccentColor;
         outCtx.fillText("REC", padX, Math.floor(height * 0.08));
       } else if (osdStyle === 2) {
-        outCtx.fillStyle = "rgb(122 255 124)";
+        outCtx.fillStyle = osdPrimaryColor;
         outCtx.fillText(stamp, padX, padY);
         outCtx.fillText("CH 03", Math.floor(width * 0.03), Math.floor(height * 0.09));
         outCtx.fillText("SP", Math.floor(width * 0.9), Math.floor(height * 0.09));
       } else {
-        outCtx.fillStyle = "rgb(170 255 170)";
+        outCtx.fillStyle = osdPrimaryColor;
         outCtx.fillText(stamp, padX, padY);
         outCtx.fillText("CAM 4", Math.floor(width * 0.82), Math.floor(height * 0.09));
       }
@@ -872,7 +884,7 @@ function getTargetBitrate(width, height, fps) {
   return Math.max(5_000_000, Math.min(35_000_000, estimated));
 }
 
-async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1 }) {
+async function exportMp4({ canvas, renderer, params, fps, duration, beforeRenderFrame, onProgress, signal, bitrateScale = 1, getRenderOptions }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
   }
@@ -941,7 +953,7 @@ async function exportMp4({ canvas, renderer, params, fps, duration, beforeRender
 
     const t = frame / fps;
     if (beforeRenderFrame) await beforeRenderFrame(t, frame, fps);
-    renderer.render(ctx, width, height, t, params, frame, fps);
+    renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
 
     const videoFrame = new VideoFrame(renderCanvas, {
       timestamp: Math.round((frame * 1_000_000) / fps),
@@ -980,7 +992,7 @@ function getSupportedWebmMimeType(withAudio) {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "video/webm";
 }
 
-async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio }) {
+async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loadedSourceType, loadedVideo, loadedImage, sourceScale, onProgress, signal, includeAudio, getRenderOptions }) {
   const width = canvas.width;
   const height = canvas.height;
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -1052,7 +1064,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       renderer.setImage(loadedImage, sourceScale());
     }
 
-    renderer.render(ctx, width, height, t, params, frame, fps);
+    renderer.render(ctx, width, height, t, params, frame, fps, getRenderOptions?.(t) || {});
     onProgress?.((frame + 1) / totalFrames, frame + 1, totalFrames);
 
     const nextFrameAt = start + ((frame + 1) * 1000) / fps;
@@ -1094,6 +1106,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const downloadStillBtn = document.getElementById("downloadStillBtn");
   const imageInput = document.getElementById("imageInput");
   const presetSelect = document.getElementById("presetSelect");
+  const osdStartDateTimeInput = document.getElementById("osdStartDateTime");
+  const osdCountWithExportInput = document.getElementById("osdCountWithExport");
+  const osdPrimaryColorInput = document.getElementById("osdPrimaryColor");
+  const osdAccentColorInput = document.getElementById("osdAccentColor");
 
   const controlIds = [
     "scanlineStrength",
@@ -1265,6 +1281,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let previewMaxPixelsControl;
   let presetControl;
   let exportFormatControl;
+  let osdFontPresetControl;
 
   function isStillPreviewMode() {
     return previewModeControl?.getValue() === "still";
@@ -1425,6 +1442,17 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function readParams() {
     return Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+  }
+
+  function readOSDOptions(elapsedSeconds = 0) {
+    return {
+      osdStartDateTime: osdStartDateTimeInput?.value,
+      osdPrimaryColor: osdPrimaryColorInput?.value,
+      osdAccentColor: osdAccentColorInput?.value,
+      osdFontPreset: osdFontPresetControl?.getValue() || "vhs",
+      osdCountWithExport: osdCountWithExportInput?.checked !== false,
+      osdElapsedSeconds: elapsedSeconds,
+    };
   }
 
   function applyPreset(name) {
@@ -1627,12 +1655,12 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (shouldRender) {
       const { width: previewWidth, height: previewHeight } = getPreviewRenderSize();
       if (previewWidth === canvas.width && previewHeight === canvas.height) {
-        renderer.render(ctx, canvas.width, canvas.height, frame / fps, readParams(), frame, fps);
+        renderer.render(ctx, canvas.width, canvas.height, frame / fps, readParams(), frame, fps, readOSDOptions(loadedSourceType === "video" ? previewFrameSeconds : frame / fps));
       } else {
         previewBuffer.width = previewWidth;
         previewBuffer.height = previewHeight;
         const previewCtx = previewBuffer.getContext("2d", { alpha: false, desynchronized: true });
-        renderer.render(previewCtx, previewBuffer.width, previewBuffer.height, frame / fps, readParams(), frame, fps);
+        renderer.render(previewCtx, previewBuffer.width, previewBuffer.height, frame / fps, readParams(), frame, fps, readOSDOptions(loadedSourceType === "video" ? previewFrameSeconds : frame / fps));
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "black";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1776,6 +1804,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
             setStatus(`Realtime export frame ${current}/${total}`, "info");
           },
           signal: activeExportController.signal,
+          getRenderOptions: (t) => readOSDOptions(t),
         });
       } else {
         await exportMp4({
@@ -1796,6 +1825,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
           },
           signal: activeExportController.signal,
           bitrateScale: qualityMultiplier,
+          getRenderOptions: (t) => readOSDOptions(t),
         });
       }
       setStatus("Export finished. Download should begin automatically.", "success");
@@ -1839,6 +1869,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   for (const id of [...controlIds, "fps", "duration"]) {
     document.getElementById(id).addEventListener("input", () => {
+      markPreviewDirty();
+      progressEl.value = 0;
+    });
+  }
+
+  for (const id of ["osdStartDateTime", "osdPrimaryColor", "osdAccentColor", "osdCountWithExport"]) {
+    document.getElementById(id)?.addEventListener("input", () => {
       markPreviewDirty();
       progressEl.value = 0;
     });
@@ -1889,6 +1926,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   exportFormatControl = setupSelectionBox("exportFormat", {
     onChange: () => {
+      progressEl.value = 0;
+    },
+  });
+
+  osdFontPresetControl = setupSelectionBox("osdFontPreset", {
+    onChange: () => {
+      markPreviewDirty();
       progressEl.value = 0;
     },
   });
