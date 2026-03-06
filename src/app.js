@@ -1112,6 +1112,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const osdAccentColorInput = document.getElementById("osdAccentColor");
   const osdStyleInput = document.getElementById("advancedOSDStyle");
   const compareHoldBtn = document.getElementById("compareHoldBtn");
+  const compareLockBtn = document.getElementById("compareLockBtn");
   const presetDirtyTag = document.getElementById("presetDirtyTag");
   const exportEstimateEl = document.getElementById("exportEstimate");
 
@@ -1209,18 +1210,22 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     numericInput.setAttribute("aria-label", `${id} numeric value`);
     wrapper.appendChild(numericInput);
 
-    const resetBtn = document.createElement("button");
-    resetBtn.type = "button";
-    resetBtn.className = "range-reset";
-    resetBtn.textContent = "↺";
-    resetBtn.title = "Reset to default";
-    resetBtn.setAttribute("aria-label", `Reset ${RANGE_CONTROL_LABELS[id] || id} to default`);
-    wrapper.appendChild(resetBtn);
+    const supportsInlineReset = id !== "previewTime";
+    let resetBtn = null;
+    if (supportsInlineReset) {
+      resetBtn = document.createElement("button");
+      resetBtn.type = "button";
+      resetBtn.className = "range-reset";
+      resetBtn.textContent = "↺";
+      resetBtn.title = "Reset to default";
+      resetBtn.setAttribute("aria-label", `Reset ${RANGE_CONTROL_LABELS[id] || id} to default`);
+      wrapper.appendChild(resetBtn);
+    }
 
     const syncToNumber = () => {
       numericInput.value = slider.value;
       numericInput.disabled = slider.disabled;
-      resetBtn.disabled = slider.disabled;
+      if (resetBtn) resetBtn.disabled = slider.disabled;
     };
 
     const clampToRange = (value) => {
@@ -1275,11 +1280,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       slider.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    resetBtn.addEventListener("click", () => {
-      resetSingleControlToDefault(id);
-      progressEl.value = 0;
-      markPreviewDirty();
-    });
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        resetSingleControlToDefault(id);
+        progressEl.value = 0;
+        markPreviewDirty();
+      });
+    }
 
     slider.addEventListener("input", syncToNumber);
     slider.addEventListener("change", syncToNumber);
@@ -1382,8 +1389,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (!exportEstimateEl) return;
     const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
     const duration = Math.max(0.1, Number(document.getElementById("duration").value) || 4);
+    const quality = Math.max(0.1, Number(document.getElementById("exportQuality").value) || 1);
     const totalFrames = Math.max(1, Math.round(fps * duration));
-    exportEstimateEl.textContent = `Export summary: ${totalFrames} frames at ${fps} FPS (${duration.toFixed(1)}s).`;
+    const workloadScore = totalFrames * quality;
+    const speedHint = workloadScore > 900 ? "Render load: heavy" : (workloadScore > 420 ? "Render load: medium" : "Render load: light");
+    exportEstimateEl.textContent = `Export summary: ${totalFrames} frames at ${fps} FPS (${duration.toFixed(1)}s) • ${speedHint}.`;
   }
 
   let previewModeControl;
@@ -2040,6 +2050,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
+  document.getElementById("exportQuality")?.addEventListener("input", () => {
+    updateExportEstimate();
+  });
+
   for (const id of ["osdStartDateTime", "osdPrimaryColor", "osdAccentColor", "osdCountWithExport"]) {
     document.getElementById(id)?.addEventListener("input", () => {
       markPreviewDirty();
@@ -2136,8 +2150,13 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     if (compareHoldBtn) {
       compareHoldBtn.dataset.selected = enabled ? "true" : "false";
       compareHoldBtn.classList.toggle("compare-active", enabled);
-      compareHoldBtn.textContent = compareLocked ? "Comparing original (locked)" : "Compare original";
       compareHoldBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    }
+    if (compareLockBtn) {
+      compareLockBtn.dataset.selected = compareLocked ? "true" : "false";
+      compareLockBtn.classList.toggle("compare-active", compareLocked);
+      compareLockBtn.textContent = compareLocked ? "Unlock compare" : "Lock compare";
+      compareLockBtn.setAttribute("aria-pressed", compareLocked ? "true" : "false");
     }
     markPreviewDirty();
   }
@@ -2149,8 +2168,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   compareHoldBtn?.addEventListener("pointerleave", () => {
     if (!compareLocked) setCompareState(false, { lock: false });
   });
-  compareHoldBtn?.addEventListener("dblclick", (event) => {
-    event.preventDefault();
+  compareLockBtn?.addEventListener("click", () => {
     compareLocked = !compareLocked;
     setCompareState(compareLocked, { lock: compareLocked });
     setStatus(compareLocked ? "Compare locked: showing original." : "Compare unlocked.", "info");

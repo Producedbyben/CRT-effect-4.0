@@ -32,7 +32,7 @@
         <section class="panel" aria-label="Quick adjustments">
           <header class="panel-header">Quick adjust</header>
           <div class="panel-body quick-grid">
-            <p class="panel-hint">Tip: double-click any slider or tap ↺ to reset. Hold <kbd>Shift</kbd> for fine adjustments.</p>
+            <p class="panel-hint">Tip: double-click any slider or tap ↺ to reset. Hold <kbd>Shift</kbd> for fine adjustments and <kbd>Alt</kbd> for coarse steps.</p>
             <label>Scanline strength <span class="range-control"><input id="scanlineStrength" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Bloom <span class="range-control"><input id="bloom" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Flicker <span class="range-control"><input id="flicker" type="range" min="0" max="1" step="0.01" value="0.22" /></span></label>
@@ -68,8 +68,9 @@
               </div>
             </label>
           </div>
-          <div class="toolbar-right actions two-up compact-actions">
-            <button id="compareHoldBtn" type="button" title="Hold pointer or Space for temporary compare. Double-click to toggle compare lock.">Compare original</button>
+          <div class="toolbar-right compare-actions compact-actions">
+            <button id="compareHoldBtn" type="button" title="Hold pointer or Space for temporary compare.">Compare</button>
+            <button id="compareLockBtn" type="button" class="secondary-btn" title="Lock/unlock original compare view" aria-pressed="false">Lock compare</button>
             <button id="downloadStillBtn" type="button">Download still</button>
           </div>
         </header>
@@ -78,7 +79,7 @@
           <canvas id="previewCanvas" width="960" height="540"></canvas>
           <div class="timeline-row">
             <label>Preview frame (s)
-              <span class="range-control"><input id="previewTime" type="range" min="0" max="0" step="0.01" value="0" disabled /></span>
+              <span class="range-control range-control-compact"><input id="previewTime" type="range" min="0" max="0" step="0.01" value="0" disabled /></span>
             </label>
             <label>Preview FPS <input id="previewFps" type="number" value="15" min="1" max="60" /></label>
             <label>Preview quality
@@ -105,9 +106,9 @@
             <label>Quality <input id="exportQuality" type="number" min="0.5" max="2.5" step="0.1" value="1" /></label>
             <label class="checkbox-row dock-audio"><input id="includeOriginalAudio" type="checkbox" /> Include original audio</label>
           </div>
-          <div class="actions two-up">
+          <div class="actions two-up export-actions">
             <button id="exportBtn">Export video</button>
-            <button id="cancelExportBtn" type="button" disabled>Cancel</button>
+            <button id="cancelExportBtn" type="button" class="secondary-btn" disabled>Cancel</button>
           </div>
           <p id="exportEstimate" class="export-note">Export summary: 120 frames at 30 FPS (4.0s).</p>
           <p class="export-note">Audio passthrough uses realtime WebM export for best compatibility.</p>
