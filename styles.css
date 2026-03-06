@@ -119,7 +119,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 .range-reset:hover { color: #f0f6ff; }
 
-.controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+.controls-grid { display: grid; grid-template-columns: 1fr; gap: 0.55rem; }
 .quick-grid { display: grid; gap: 0.45rem; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .actions { display: grid; gap: 0.4rem; }
