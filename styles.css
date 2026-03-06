@@ -35,7 +35,6 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
 .panel-header-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
 }
 
@@ -43,6 +42,7 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  margin-left: auto;
   font-size: 0.72rem;
   color: #b9c8dc;
 }
@@ -53,6 +53,23 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
 
 .panel-effects-disabled .panel-body {
   opacity: 0.55;
+}
+
+.panel-collapsible > .panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.panel-collapse-btn {
+  margin-left: 0.25rem;
+  width: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.panel-collapsed {
+  border-color: #36404f;
 }
 .panel-hint {
   margin: 0;

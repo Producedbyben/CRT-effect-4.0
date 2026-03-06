@@ -1776,6 +1776,36 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     };
   }
 
+  function setupCollapsiblePanels() {
+    const panels = Array.from(document.querySelectorAll(".panel-collapsible"));
+    for (const panel of panels) {
+      const header = panel.querySelector(":scope > .panel-header");
+      const body = panel.querySelector(":scope > .panel-body");
+      if (!header || !body) continue;
+
+      let collapseBtn = header.querySelector(".panel-collapse-btn");
+      if (!collapseBtn) {
+        collapseBtn = document.createElement("button");
+        collapseBtn.type = "button";
+        collapseBtn.className = "panel-collapse-btn secondary-btn";
+        header.appendChild(collapseBtn);
+      }
+
+      const setCollapsed = (collapsed) => {
+        panel.dataset.collapsed = collapsed ? "true" : "false";
+        panel.classList.toggle("panel-collapsed", collapsed);
+        body.hidden = collapsed;
+        collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        collapseBtn.textContent = collapsed ? "Expand" : "Collapse";
+      };
+
+      setCollapsed(panel.dataset.collapsed === "true");
+      collapseBtn.addEventListener("click", () => {
+        setCollapsed(!(panel.dataset.collapsed === "true"));
+      });
+    }
+  }
+
   function setupTabs() {
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab]"));
     const panels = Array.from(document.querySelectorAll(".inspector-tab[data-panel]"));
@@ -2783,6 +2813,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   });
 
   setupEffectPanelToggles();
+  setupCollapsiblePanels();
   setupTabs();
 
   setExportAvailability();

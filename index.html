@@ -10,13 +10,22 @@
     <main class="app">
       <aside class="left-rail">
         <h1>CRT Effect Renderer</h1>
-        <section class="panel" aria-label="Source and presets">
-          <header class="panel-header">Source</header>
+        <section class="panel panel-collapsible" aria-label="Import source">
+          <header class="panel-header">Import source</header>
           <div class="panel-body">
             <label class="file-input">
               <span>Image / Video source</span>
               <input id="imageInput" type="file" accept="image/*,video/*,.mov,.webm,.mp4" />
             </label>
+            <div class="actions compact-actions">
+              <button id="resetSourceBtn" type="button">Reset source</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-collapsible" aria-label="Preset controls">
+          <header class="panel-header">Presets</header>
+          <div class="panel-body">
             <div class="row preset-headline">
               <label>Preset library</label>
               <span id="presetDirtyTag" class="dirty-tag" hidden>Modified</span>
@@ -24,7 +33,7 @@
             <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
             <label>Preset intensity <span class="range-control"><input id="presetIntensity" type="range" min="0" max="1.5" step="0.01" value="1" /></span></label>
             <label>Mask pattern
-              <div id="maskType" class="selection-box selection-inline" role="radiogroup" aria-label="Mask pattern">
+              <div id="maskType" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Mask pattern">
                 <button type="button" data-value="phosphor" data-selected="true">Phosphor triad</button>
                 <button type="button" data-value="aperture">Aperture grille</button>
                 <button type="button" data-value="slot">Slot mask</button>
@@ -34,14 +43,13 @@
                 <button type="button" data-value="none">None</button>
               </div>
             </label>
-            <div class="actions two-up compact-actions">
+            <div class="actions compact-actions">
               <button id="resetParamsBtn" type="button">Reset look</button>
-              <button id="resetSourceBtn" type="button">Reset source</button>
             </div>
           </div>
         </section>
 
-        <section class="panel" aria-label="CRT effects">
+        <section class="panel panel-collapsible" aria-label="CRT effects">
           <header class="panel-header panel-header-toggle">
             <span>CRT effects</span>
             <label class="panel-toggle"><input id="crtEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -58,7 +66,7 @@
           </div>
         </section>
 
-        <section class="panel" aria-label="Digital effects">
+        <section class="panel panel-collapsible" aria-label="Digital effects">
           <header class="panel-header panel-header-toggle">
             <span>Digital effects</span>
             <label class="panel-toggle"><input id="digitalEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -74,7 +82,7 @@
           </div>
         </section>
 
-        <section class="panel" aria-label="Film effects">
+        <section class="panel panel-collapsible" aria-label="Film effects">
           <header class="panel-header panel-header-toggle">
             <span>Film effects</span>
             <label class="panel-toggle"><input id="filmEffectsEnabled" type="checkbox" checked /> Enabled</label>
@@ -180,7 +188,7 @@
 
       <aside class="right-inspector">
         <section class="inspector-tab" data-panel="degrade">
-          <section class="panel">
+          <section class="panel panel-collapsible">
             <header class="panel-header">Additional video artifacts</header>
             <div class="panel-body controls-grid">
               <label>Pixel size <input id="pixelSize" type="number" min="1" max="8" step="1" value="1" /></label>
@@ -198,7 +206,7 @@
         </section>
 
         <section class="inspector-tab" data-panel="osd">
-          <section class="panel">
+          <section class="panel panel-collapsible">
             <header class="panel-header">Overlays & OSD</header>
             <div class="panel-body">
               <label>Timestamp intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
