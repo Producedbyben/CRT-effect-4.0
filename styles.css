@@ -182,14 +182,6 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .controls-grid { display: grid; grid-template-columns: 1fr; gap: 0.55rem; }
 .quick-grid { display: grid; gap: 0.45rem; }
-.panel-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.panel-grid-2 > .panel-hint,
-.panel-grid-2 > .panel-span-2,
-.panel-grid-2 > details,
-.panel-grid-2 > .actions,
-.panel-grid-2 > .jump-list {
-  grid-column: 1 / -1;
-}
 
 .jump-list {
   display: grid;
@@ -300,7 +292,6 @@ body[data-density="compact"] .selection-box button {
 @media (max-width: 1420px) {
   .app { grid-template-columns: 260px 1fr 320px; }
   .dock-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
-  .panel-grid-2 { grid-template-columns: 1fr; }
   .jump-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
