@@ -214,7 +214,7 @@ class CRTRenderer {
     const focusBreathing = Math.max(0, Math.min(1, Number(params.advancedFocusBreathing) || 0));
     const tapeCrease = Math.max(0, Math.min(1, Number(params.advancedTapeCrease) || 0));
     const timestampOSD = Math.max(0, Math.min(1, Number(params.advancedTimestampOSD) || 0));
-    const osdStyle = Math.max(0, Math.min(3, Math.round(Number(params.advancedOSDStyle) || 0)));
+    const osdStyle = Math.max(0, Math.min(5, Math.round(Number(params.advancedOSDStyle) || 0)));
     const osdStartDate = Number.isFinite(Date.parse(renderOptions.osdStartDateTime || "")) ? new Date(renderOptions.osdStartDateTime) : new Date("1998-10-31T22:48:00");
     const osdCountWithExport = renderOptions.osdCountWithExport !== false;
     const osdElapsedSeconds = osdCountWithExport ? Math.max(0, Number(renderOptions.osdElapsedSeconds ?? frameSeconds) || 0) : 0;
@@ -643,29 +643,94 @@ class CRTRenderer {
       const osdAlpha = Math.min(0.9, timestampOSD * flickerAlpha);
       const padX = Math.floor(width * 0.03);
       const padY = Math.floor(height * 0.95);
+      const topY = Math.floor(height * 0.08);
+      const rightX = Math.floor(width * 0.97);
+      const textSize = Math.max(12, Math.floor(height * 0.027));
+
+      const drawTextWithStroke = (text, x, y, {
+        fill = osdPrimaryColor,
+        stroke = "rgb(0 0 0 / 0.8)",
+        align = "left",
+        lineWidth = Math.max(1.5, textSize * 0.16),
+      } = {}) => {
+        outCtx.textAlign = align;
+        outCtx.lineJoin = "round";
+        outCtx.strokeStyle = stroke;
+        outCtx.lineWidth = lineWidth;
+        outCtx.strokeText(text, x, y);
+        outCtx.fillStyle = fill;
+        outCtx.fillText(text, x, y);
+      };
 
       outCtx.save();
-      outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px ${osdFontByPreset[osdFontPreset] || osdFontByPreset.vhs}`;
+      outCtx.font = `${textSize}px ${osdFontByPreset[osdFontPreset] || osdFontByPreset.vhs}`;
       outCtx.textBaseline = "bottom";
       outCtx.globalAlpha = osdAlpha;
 
       if (osdStyle === 0) {
-        outCtx.fillStyle = osdPrimaryColor;
-        outCtx.fillText(stamp, padX, padY);
+        drawTextWithStroke(stamp, padX, padY, { stroke: "rgb(0 0 0 / 0.7)" });
       } else if (osdStyle === 1) {
-        outCtx.fillStyle = "rgb(237 244 255)";
-        outCtx.fillText(stamp, padX, padY);
-        outCtx.fillStyle = osdAccentColor;
-        outCtx.fillText("REC", padX, Math.floor(height * 0.08));
+        drawTextWithStroke(stamp, padX, padY, {
+          fill: "rgb(237 244 255)",
+          stroke: "rgb(11 24 32 / 0.9)",
+        });
+        drawTextWithStroke("● REC", padX, topY, {
+          fill: osdAccentColor,
+          stroke: "rgb(0 0 0 / 0.75)",
+        });
       } else if (osdStyle === 2) {
-        outCtx.fillStyle = osdPrimaryColor;
-        outCtx.fillText(stamp, padX, padY);
-        outCtx.fillText("CH 03", Math.floor(width * 0.03), Math.floor(height * 0.09));
-        outCtx.fillText("SP", Math.floor(width * 0.9), Math.floor(height * 0.09));
+        drawTextWithStroke(stamp, padX, padY, { stroke: "rgb(0 0 0 / 0.86)" });
+        drawTextWithStroke("CH 03", padX, topY, { stroke: "rgb(0 0 0 / 0.9)" });
+        drawTextWithStroke("SP", rightX, topY, {
+          align: "right",
+          stroke: "rgb(0 0 0 / 0.9)",
+        });
+      } else if (osdStyle === 3) {
+        drawTextWithStroke(stamp, padX, padY, {
+          fill: "rgb(223 240 255)",
+          stroke: "rgb(8 22 37 / 0.9)",
+        });
+        drawTextWithStroke("CAM 4", rightX, topY, {
+          fill: osdPrimaryColor,
+          align: "right",
+          stroke: "rgb(0 0 0 / 0.9)",
+        });
+        drawTextWithStroke("LIVE", padX, topY, {
+          fill: osdAccentColor,
+          stroke: "rgb(0 0 0 / 0.9)",
+        });
+      } else if (osdStyle === 4) {
+        const altStamp = `${String(stampDate.getHours()).padStart(2, "0")}:${String(stampDate.getMinutes()).padStart(2, "0")}:${String(stampDate.getSeconds()).padStart(2, "0")}`;
+        const battery = `${Math.round(45 + seededNoise(temporalFrame, temporalSeconds, 207) * 50)}%`;
+        drawTextWithStroke(`TIME ${altStamp}`, padX, padY, {
+          fill: osdPrimaryColor,
+          stroke: "rgb(6 18 10 / 0.95)",
+        });
+        drawTextWithStroke(`BATT ${battery}`, rightX, padY, {
+          align: "right",
+          fill: "rgb(206 255 189)",
+          stroke: "rgb(6 18 10 / 0.95)",
+        });
+        drawTextWithStroke("PLAY ▶", padX, topY, {
+          fill: "rgb(206 255 189)",
+          stroke: "rgb(6 18 10 / 0.95)",
+        });
       } else {
-        outCtx.fillStyle = osdPrimaryColor;
-        outCtx.fillText(stamp, padX, padY);
-        outCtx.fillText("CAM 4", Math.floor(width * 0.82), Math.floor(height * 0.09));
+        const cctvDate = `${String(stampDate.getDate()).padStart(2, "0")}-${String(stampDate.getMonth() + 1).padStart(2, "0")}-${stampDate.getFullYear()}`;
+        drawTextWithStroke(`CAM 07   ${cctvDate}`, padX, topY, {
+          fill: "rgb(214 252 214)",
+          stroke: "rgb(0 0 0 / 0.95)",
+        });
+        drawTextWithStroke(stamp.split(" ")[1], rightX, topY, {
+          align: "right",
+          fill: "rgb(214 252 214)",
+          stroke: "rgb(0 0 0 / 0.95)",
+        });
+        drawTextWithStroke("MOTION", rightX, padY, {
+          align: "right",
+          fill: osdAccentColor,
+          stroke: "rgb(0 0 0 / 0.95)",
+        });
       }
 
       outCtx.restore();

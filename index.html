@@ -296,13 +296,15 @@
             <div class="panel-body">
               <label>Timestamp intensity <span class="range-control"><input id="advancedTimestampOSD" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
               <label>OSD style
-                <div id="advancedOSDStyleSelect" class="selection-box selection-inline" role="radiogroup" aria-label="OSD style">
+                <div id="advancedOSDStyleSelect" class="selection-box osd-style-grid" role="radiogroup" aria-label="OSD style">
                   <button type="button" data-value="0" data-selected="true">Classic</button>
                   <button type="button" data-value="1">Digital</button>
                   <button type="button" data-value="2">Tape Cam</button>
                   <button type="button" data-value="3">Broadcast</button>
+                  <button type="button" data-value="4">Handycam</button>
+                  <button type="button" data-value="5">CCTV HUD</button>
                 </div>
-                <input id="advancedOSDStyle" type="range" min="0" max="3" step="1" value="0" hidden />
+                <input id="advancedOSDStyle" type="range" min="0" max="5" step="1" value="0" hidden />
               </label>
               <label>Start date/time <input id="osdStartDateTime" type="datetime-local" value="1998-10-31T22:48:00" /></label>
               <label class="checkbox-row"><input id="osdCountWithExport" type="checkbox" checked /> Timecode counts up with export/playback</label>
