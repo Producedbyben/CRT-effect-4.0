@@ -13,12 +13,716 @@ const FALLBACK_PRESETS = {
   },
 };
 
+const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
+
+
 function normalizePresetRecord(entry, index = 0) {
   const values = entry?.values && typeof entry.values === "object" ? entry.values : entry;
-  const id = String(entry?.id || entry?.name || `preset-${index + 1}`)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+  const name = String(entry?.name || entry?.id || `Preset ${index + 1}`);
+  return {
+    id: String(entry?.id || name),
+    name,
+    description: entry?.description || "",
+    type: entry?.type || "Experimental",
+    era: entry?.era || "2000s",
+    signalFamily: entry?.signalFamily || "hybrid",
+    damageLevel: entry?.damageLevel || "medium",
+    tags: Array.isArray(entry?.tags) ? entry.tags : [],
+    signalChain: entry?.signalChain || "",
+    historicalContext: entry?.historicalContext || "",
+    sortOrder: Number.isFinite(entry?.sortOrder) ? entry.sortOrder : index,
+    realismScore: Number.isFinite(entry?.realismScore) ? entry.realismScore : 8,
+    values: values && typeof values === "object" ? values : {},
+  };
+}
+
+function inferLegacyPresetMetadata(name, values = {}, index = 0) {
+  const lower = String(name).toLowerCase();
+  let type = "Experimental";
+  if (lower.includes("vhs") || lower.includes("u-matic") || lower.includes("betacam")) type = "VHS";
+  else if (lower.includes("broadcast") || lower.includes("off-air") || lower.includes("public access")) type = "Broadcast";
+  else if (lower.includes("cam") || lower.includes("camcorder") || lower.includes("minidv") || lower.includes("hi8") || lower.includes("video8")) type = "Camcorder";
+  else if (lower.includes("cctv") || lower.includes("security")) type = "CCTV";
+  else if (lower.includes("web") || lower.includes("stream") || lower.includes("youtube") || lower.includes("digital")) type = "Web";
+  else if (lower.includes("film") || lower.includes("technicolor") || lower.includes("super 8") || lower.includes("16mm")) type = "Film";
+  else if (lower.includes("archive") || lower.includes("recovery")) type = "Archive";
+  else if (lower.includes("crt") || lower.includes("pvm") || lower.includes("arcade") || lower.includes("tv")) type = "CRT";
+
+  const eraMatch = lower.match(/(1920s|1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
+  const era = eraMatch ? eraMatch[1] : (lower.includes("late-80") ? "1980s" : (lower.includes("90") ? "1990s" : "2000s"));
+  const digital = (values.advancedQuantization || 0) + (values.advancedMacroBlocking || 0) + (values.advancedGenerationLoss || 0);
+  const analog = (values.advancedHeadSwitching || 0) + (values.advancedTimebaseWobble || 0) + (values.advancedDropouts || 0) + (values.advancedRfInterference || 0);
+  const signalFamily = digital > analog * 1.2 ? "digital" : (analog > digital * 1.2 ? "analog" : "hybrid");
+  const damageMetric = ((values.noise || 0) + (values.advancedDropouts || 0) + (values.advancedGenerationLoss || 0) + (values.advancedMacroBlocking || 0)) / 4;
+  const damageLevel = damageMetric < 0.12 ? "clean" : damageMetric < 0.25 ? "mild" : damageMetric < 0.4 ? "medium" : damageMetric < 0.58 ? "heavy" : "extreme";
+
+  return {
+    id: `legacy-${index + 1}`,
+    name,
+    description: "Legacy preset migrated from original CRT Effect preset pack.",
+    type,
+    era,
+    signalFamily,
+    damageLevel,
+    tags: ["legacy", "migrated"],
+    signalChain: "Original preset from historical CRT-effect preset pack.",
+    historicalContext: "Migrated into normalized preset architecture for backwards compatibility.",
+    sortOrder: 1000 + index,
+    realismScore: 8.0,
+    values,
+  };
+}
+
+async function loadMergedPresetLibrary() {
+  const curated = Array.isArray(window.CRT_PRESET_LIBRARY) ? window.CRT_PRESET_LIBRARY : [];
+  const normalizedCurated = curated.map(normalizePresetRecord);
+  const byName = new Map(normalizedCurated.map((record) => [record.name, record]));
+
+  try {
+    const module = await import("./presets.js");
+    const legacy = module?.PRESETS || {};
+    Object.entries(legacy).forEach(([name, values], index) => {
+      if (byName.has(name)) return;
+      byName.set(name, inferLegacyPresetMetadata(name, values, index));
+    });
+  } catch (error) {
+    console.warn("Could not import presets.js legacy preset pack", error);
+  }
+
+  if (!byName.size) {
+    Object.entries(FALLBACK_PRESETS).forEach(([name, values], index) => {
+      byName.set(name, inferLegacyPresetMetadata(name, values, index));
+    });
+  }
+
+  return Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+}
+
+function seededNoise(x, y, frame) {
+  const v = Math.sin(x * 12.9898 + y * 78.233 + frame * 19.17) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+const BAYER_4X4 = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+
+class CRTRenderer {
+  constructor() {
+    this.sourceCanvas = document.createElement("canvas");
+    this.fitCanvas = document.createElement("canvas");
+    this.workCanvas = document.createElement("canvas");
+    this.tempCanvas = document.createElement("canvas");
+    this.quantCanvas = document.createElement("canvas");
+    this.hasImage = false;
+  }
+
+  setImage(img, sourceScale = 1) {
+    const inputWidth = img.naturalWidth || img.videoWidth || img.width;
+    const inputHeight = img.naturalHeight || img.videoHeight || img.height;
+    const scale = Math.max(0.1, Math.min(1, sourceScale || 1));
+    this.sourceCanvas.width = Math.max(1, Math.round(inputWidth * scale));
+    this.sourceCanvas.height = Math.max(1, Math.round(inputHeight * scale));
+    const ctx = this.sourceCanvas.getContext("2d");
+    ctx.clearRect(0, 0, this.sourceCanvas.width, this.sourceCanvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, inputWidth, inputHeight, 0, 0, this.sourceCanvas.width, this.sourceCanvas.height);
+    this.hasImage = true;
+  }
+
+  sampleBilinear(data, width, height, u, v, channel) {
+    const x = Math.max(0, Math.min(width - 1, u * (width - 1)));
+    const y = Math.max(0, Math.min(height - 1, v * (height - 1)));
+    const x0 = Math.floor(x);
+    const x1 = Math.min(width - 1, x0 + 1);
+    const y0 = Math.floor(y);
+    const y1 = Math.min(height - 1, y0 + 1);
+    const tx = x - x0;
+    const ty = y - y0;
+
+    const i00 = (y0 * width + x0) * 4 + channel;
+    const i10 = (y0 * width + x1) * 4 + channel;
+    const i01 = (y1 * width + x0) * 4 + channel;
+    const i11 = (y1 * width + x1) * 4 + channel;
+
+    const a = data[i00] * (1 - tx) + data[i10] * tx;
+    const b = data[i01] * (1 - tx) + data[i11] * tx;
+    return a * (1 - ty) + b * ty;
+  }
+
+  render(outCtx, width, height, seconds, params, frameIndex, fps, renderOptions = {}) {
+    outCtx.clearRect(0, 0, width, height);
+    outCtx.fillStyle = "black";
+    outCtx.fillRect(0, 0, width, height);
+    if (!this.hasImage) return;
+
+    this.fitCanvas.width = width;
+    this.fitCanvas.height = height;
+    const fitCtx = this.fitCanvas.getContext("2d", { willReadFrequently: true });
+    fitCtx.clearRect(0, 0, width, height);
+    fitCtx.imageSmoothingEnabled = true;
+    fitCtx.imageSmoothingQuality = "high";
+
+    const src = this.sourceCanvas;
+    const srcAspect = src.width / src.height;
+    const dstAspect = width / height;
+    let sw = src.width;
+    let sh = src.height;
+    let sx = 0;
+    let sy = 0;
+
+    if (srcAspect > dstAspect) {
+      sw = src.height * dstAspect;
+      sx = (src.width - sw) / 2;
+    } else {
+      sh = src.width / dstAspect;
+      sy = (src.height - sh) / 2;
+    }
+
+    fitCtx.drawImage(src, sx, sy, sw, sh, 0, 0, width, height);
+
+    this.workCanvas.width = width;
+    this.workCanvas.height = height;
+    const wctx = this.workCanvas.getContext("2d", { willReadFrequently: true });
+    const srcPixels = fitCtx.getImageData(0, 0, width, height);
+    const outPixels = wctx.createImageData(width, height);
+    const srcData = srcPixels.data;
+    const dstData = outPixels.data;
+
+    const barrel = Math.max(-0.3, Math.min(0.3, params.barrelDistortion));
+    const barrelCornerWarp = Math.max(0.35, 1 + barrel * (0.22 + 0.78 * 2));
+    const barrelOverscan = barrel < 0 ? barrelCornerWarp : 1;
+    const ca = params.chromaticAberration;
+    const scan = params.scanlineStrength;
+    const mask = params.phosphorMask;
+    const maskType = typeof params.maskType === "string" ? params.maskType : "phosphor";
+    const pixelSize = Math.max(1, Number(params.pixelSize) || 1);
+    const maskScale = Math.max(1, Number(params.maskScale) || 1);
+    const pixelInfluence = 1 + (pixelSize - 1) * 0.22;
+    const pixelStepX = width > 1 ? 1 / (width - 1) : 0;
+    const pixelStepY = height > 1 ? 1 / (height - 1) : 0;
+    const frameSeconds = frameIndex / fps;
+
+    const lineJitter = Math.max(0, Math.min(1, Number(params.advancedLineJitter) || 0));
+    const timebaseWobble = Math.max(0, Math.min(1, Number(params.advancedTimebaseWobble) || 0));
+    const headSwitching = Math.max(0, Math.min(1, Number(params.advancedHeadSwitching) || 0));
+    const chromaDelay = Math.max(0, Math.min(1, Number(params.advancedChromaDelay) || 0));
+    const crossColor = Math.max(0, Math.min(1, Number(params.advancedCrossColor) || 0));
+    const dropouts = Math.max(0, Math.min(1, Number(params.advancedDropouts) || 0));
+    const ghosting = Math.max(0, Math.min(1, Number(params.advancedGhosting) || 0));
+    const interlacing = Math.max(0, Math.min(1, Number(params.advancedInterlacing) || 0));
+    const frameStutter = Math.max(0, Math.min(1, Number(params.advancedFrameStutter) || 0));
+    const rfInterference = Math.max(0, Math.min(1, Number(params.advancedRfInterference) || 0));
+    const exposurePump = Math.max(0, Math.min(1, Number(params.advancedExposurePump) || 0));
+    const whiteBalanceDrift = Math.max(0, Math.min(1, Number(params.advancedWhiteBalanceDrift) || 0));
+    const focusBreathing = Math.max(0, Math.min(1, Number(params.advancedFocusBreathing) || 0));
+    const tapeCrease = Math.max(0, Math.min(1, Number(params.advancedTapeCrease) || 0));
+    const timestampOSD = Math.max(0, Math.min(1, Number(params.advancedTimestampOSD) || 0));
+    const osdStyle = Math.max(0, Math.min(3, Math.round(Number(params.advancedOSDStyle) || 0)));
+    const osdStartDate = Number.isFinite(Date.parse(renderOptions.osdStartDateTime || "")) ? new Date(renderOptions.osdStartDateTime) : new Date("1998-10-31T22:48:00");
+    const osdCountWithExport = renderOptions.osdCountWithExport !== false;
+    const osdElapsedSeconds = osdCountWithExport ? Math.max(0, Number(renderOptions.osdElapsedSeconds ?? frameSeconds) || 0) : 0;
+    const osdPrimaryColor = renderOptions.osdPrimaryColor || "#ffa84a";
+    const osdAccentColor = renderOptions.osdAccentColor || "#ff3a3a";
+    const osdFontPreset = renderOptions.osdFontPreset || "vhs";
+    const osdFontByPreset = {
+      vhs: '"VCR OSD Mono", "Lucida Console", "Courier New", monospace',
+      camcorder: '"MS Gothic", "Small Fonts", "Tahoma", sans-serif',
+      cctv: '"OCR A Std", "Consolas", "Lucida Console", monospace',
+      broadcast: '"Arial Narrow", "Arial", sans-serif',
+    };
+    const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
+    const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
+    const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
+    const macroBlocking = Math.max(0, Math.min(1, Number(params.advancedMacroBlocking) || 0));
+    const filmGrain = Math.max(0, Math.min(1, Number(params.advancedFilmGrain) || 0));
+    const filmDust = Math.max(0, Math.min(1, Number(params.advancedFilmDust) || 0));
+    const filmScratches = Math.max(0, Math.min(1, Number(params.advancedFilmScratches) || 0));
+    const filmGateWeave = Math.max(0, Math.min(1, Number(params.advancedFilmGateWeave) || 0));
+    const filmHalation = Math.max(0, Math.min(1, Number(params.advancedFilmHalation) || 0));
+
+    const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
+    const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
+    const temporalFrame = stutterHoldFrames > 0 ? stutteredFrame : frameIndex;
+    const temporalSeconds = temporalFrame / fps;
+
+    for (let y = 0; y < height; y++) {
+      const ny = (y / (height - 1)) * 2 - 1;
+      const maskY = Math.floor(y / maskScale);
+      const scanPhase = Math.sin((maskY + 0.5) * Math.PI);
+      const scanlineGain = 1 - scan * (0.35 + 0.65 * (0.5 + 0.5 * scanPhase));
+
+      for (let x = 0; x < width; x++) {
+        const nx = (x / (width - 1)) * 2 - 1;
+        const r2 = nx * nx + ny * ny;
+        const warpCurve = 0.22 + 0.78 * r2;
+        const warp = Math.max(0.35, 1 + barrel * warpCurve);
+        const wobble = Math.sin((ny + temporalSeconds * 0.9) * Math.PI * 6) * timebaseWobble * 0.012;
+        const perLineJitter = (seededNoise(y, temporalFrame * 0.07, 7) - 0.5) * lineJitter * 0.018;
+        const baseHeadSwitching = ny > 0.84 ? headSwitching * (ny - 0.84) * 0.14 : 0;
+        const creaseCenter = seededNoise(Math.floor(temporalSeconds * 0.67), 19, 11);
+        const creaseDistance = Math.abs(y / Math.max(1, height - 1) - creaseCenter);
+        const creaseWarp = tapeCrease > 0 ? Math.max(0, 1 - creaseDistance / 0.045) * tapeCrease * (0.015 + seededNoise(temporalFrame, y, 41) * 0.02) : 0;
+
+        const weaveX = filmGateWeave * Math.sin(temporalSeconds * 1.7 + y * 0.013) * 0.01;
+        const weaveY = filmGateWeave * Math.cos(temporalSeconds * 1.9 + x * 0.009) * 0.008;
+        const srcNx = (nx / warp) * barrelOverscan + wobble + perLineJitter + baseHeadSwitching + creaseWarp + weaveX;
+        const srcNy = (ny / warp) * barrelOverscan + weaveY;
+        const u = Math.max(0, Math.min(1, srcNx * 0.5 + 0.5));
+        const v = Math.max(0, Math.min(1, srcNy * 0.5 + 0.5));
+
+        const outIndex = (y * width + x) * 4;
+
+        const edgeShift = ca * (0.0012 + r2 * 0.0045) * (0.8 + (pixelSize - 1) * 0.22);
+        const qx = Math.floor((u * width) / pixelSize) * pixelSize + pixelSize * 0.5;
+        const qy = Math.floor((v * height) / pixelSize) * pixelSize + pixelSize * 0.5;
+        const qu = Math.max(0, Math.min(1, qx / width));
+        const qv = Math.max(0, Math.min(1, qy / height));
+
+        const delayShift = chromaDelay * 0.02 * (seededNoise(y, temporalSeconds * 1.3, 23) - 0.2);
+        const crossColorShift = crossColor * 0.012 * Math.sin((y + temporalSeconds * 60) * 0.08);
+        const ru = qu + edgeShift * (0.7 + Math.abs(nx)) + delayShift;
+        const gu = qu + crossColorShift * 0.45;
+        const bu = qu - edgeShift * (0.7 + Math.abs(nx)) - delayShift;
+
+        const red = this.sampleBilinear(srcData, width, height, ru, qv, 0);
+        const green = this.sampleBilinear(srcData, width, height, gu, qv, 1);
+        const blue = this.sampleBilinear(srcData, width, height, bu, qv, 2);
+
+        const redHoriz =
+          this.sampleBilinear(srcData, width, height, ru - pixelStepX, qv, 0) * 0.5 +
+          this.sampleBilinear(srcData, width, height, ru + pixelStepX, qv, 0) * 0.5;
+        const greenHoriz =
+          this.sampleBilinear(srcData, width, height, gu - pixelStepX, qv, 1) * 0.5 +
+          this.sampleBilinear(srcData, width, height, gu + pixelStepX, qv, 1) * 0.5;
+        const blueHoriz =
+          this.sampleBilinear(srcData, width, height, bu - pixelStepX, qv, 2) * 0.5 +
+          this.sampleBilinear(srcData, width, height, bu + pixelStepX, qv, 2) * 0.5;
+
+        const redVert =
+          this.sampleBilinear(srcData, width, height, ru, qv - pixelStepY, 0) * 0.5 +
+          this.sampleBilinear(srcData, width, height, ru, qv + pixelStepY, 0) * 0.5;
+        const greenVert =
+          this.sampleBilinear(srcData, width, height, gu, qv - pixelStepY, 1) * 0.5 +
+          this.sampleBilinear(srcData, width, height, gu, qv + pixelStepY, 1) * 0.5;
+        const blueVert =
+          this.sampleBilinear(srcData, width, height, bu, qv - pixelStepY, 2) * 0.5 +
+          this.sampleBilinear(srcData, width, height, bu, qv + pixelStepY, 2) * 0.5;
+
+        const luminance = Math.max(red, green, blue) / 255;
+        const bleed = (0.08 + params.bloom * 0.26 + mask * 0.08) * pixelInfluence * Math.pow(luminance, 0.75);
+        const blend = Math.min(0.45, bleed);
+
+        const maskX = Math.floor(x / maskScale);
+        const boost = 1 + mask * 0.52;
+        const dim = 1 - mask * 0.32;
+        let rMask = 1;
+        let gMask = 1;
+        let bMask = 1;
+
+        if (maskType === "phosphor") {
+          const triad = maskX % 3;
+          rMask = triad === 0 ? boost : dim;
+          gMask = triad === 1 ? boost : dim;
+          bMask = triad === 2 ? boost : dim;
+        } else if (maskType === "aperture") {
+          const stripe = maskX % 3;
+          const stripeBoost = 1 + mask * 0.34;
+          const stripeDim = 1 - mask * 0.2;
+          rMask = stripe === 0 ? stripeBoost : stripeDim;
+          gMask = stripe === 1 ? stripeBoost : stripeDim;
+          bMask = stripe === 2 ? stripeBoost : stripeDim;
+        } else if (maskType === "slot") {
+          const slotX = maskX % 6;
+          const slotY = maskY % 4;
+          const slotOpen = slotX < 2 || (slotY & 1 ? slotX >= 2 && slotX < 4 : slotX >= 4);
+          const slotGain = slotOpen ? (1 + mask * 0.28) : (1 - mask * 0.24);
+          rMask = slotGain;
+          gMask = slotGain;
+          bMask = slotGain;
+        } else if (maskType === "dot") {
+          const dotX = (maskX % 6) - 2.5;
+          const dotY = (maskY % 6) - 2.5;
+          const dotDist = Math.sqrt(dotX * dotX + dotY * dotY);
+          const dotGain = 1 + mask * (0.34 - Math.min(0.34, dotDist * 0.08));
+          rMask = dotGain;
+          gMask = dotGain;
+          bMask = dotGain;
+        } else if (maskType === "filmSuper8") {
+          const edgeX = Math.min(x / Math.max(1, width), (width - x) / Math.max(1, width));
+          const edgeY = Math.min(y / Math.max(1, height), (height - y) / Math.max(1, height));
+          const edgeVignette = Math.min(edgeX, edgeY);
+          const perforationBand = x < width * 0.04 || x > width * 0.96;
+          const perfPulse = 0.86 + 0.14 * Math.sin((y / Math.max(1, height)) * Math.PI * 12 + temporalSeconds * 4);
+          const super8Gain = 1 - mask * (0.22 * (1 - edgeVignette));
+          rMask = super8Gain * (perforationBand ? perfPulse : 1);
+          gMask = super8Gain * (perforationBand ? perfPulse : 1);
+          bMask = super8Gain * (perforationBand ? perfPulse : 1);
+        } else if (maskType === "film16mm") {
+          const gateEdge = Math.min(x / Math.max(1, width), (width - x) / Math.max(1, width), y / Math.max(1, height), (height - y) / Math.max(1, height));
+          const gateDarken = 1 - mask * (0.16 * (1 - gateEdge));
+          const weaveTexture = 1 + mask * 0.08 * (seededNoise(x * 0.03, y * 0.03, temporalFrame) - 0.5);
+          rMask = gateDarken * weaveTexture;
+          gMask = gateDarken * weaveTexture;
+          bMask = gateDarken * weaveTexture;
+        }
+
+        const dither = (BAYER_4X4[maskY & 3][maskX & 3] / 15 - 0.5) * (1.4 + params.noise * 2.2);
+
+        let redSoft = red * (1 - blend) + (redHoriz * 0.62 + redVert * 0.38) * blend;
+        let greenSoft = green * (1 - blend) + (greenHoriz * 0.62 + greenVert * 0.38) * blend;
+        let blueSoft = blue * (1 - blend) + (blueHoriz * 0.62 + blueVert * 0.38) * blend;
+
+        if (filmHalation > 0) {
+          const haloMix = Math.min(0.45, filmHalation * (0.12 + luminance * 0.5));
+          redSoft = redSoft * (1 - haloMix) + redHoriz * haloMix;
+          greenSoft = greenSoft * (1 - haloMix) + greenHoriz * haloMix;
+          blueSoft = blueSoft * (1 - haloMix) + blueHoriz * haloMix;
+        }
+
+        const grain = (seededNoise(x * 1.91, y * 1.37, temporalFrame * 1.3) - 0.5) * 255 * (0.06 + filmGrain * 0.34);
+        redSoft += grain;
+        greenSoft += grain * 0.92;
+        blueSoft += grain * 0.78;
+
+        const dustHit = seededNoise(x * 0.19 + temporalFrame * 0.03, y * 0.23, 83);
+        if (filmDust > 0 && dustHit > 0.995 - filmDust * 0.03) {
+          const dustShade = 1 - filmDust * (0.3 + seededNoise(x, y, temporalFrame) * 0.5);
+          redSoft *= dustShade;
+          greenSoft *= dustShade;
+          blueSoft *= dustShade;
+        }
+
+        const scratchSeed = seededNoise(Math.floor(x * 0.07), temporalFrame * 0.11, 97);
+        if (filmScratches > 0 && scratchSeed > 0.982 - filmScratches * 0.045) {
+          const scratchBright = 1 + filmScratches * 0.6;
+          redSoft *= scratchBright;
+          greenSoft *= scratchBright;
+          blueSoft *= scratchBright;
+        }
+
+        const dropoutNoise = seededNoise(x * 0.5, y + temporalFrame * 0.27, 31);
+        const dropoutGate = dropoutNoise > 0.988 - dropouts * 0.08 ? 1 - dropouts * (0.35 + seededNoise(y, temporalFrame, 59) * 0.5) : 1;
+        const interlaceGate = interlacing > 0 ? 1 - interlacing * (((y + temporalFrame) & 1) ? 0.14 : 0.02) : 1;
+        const level = scanlineGain * dropoutGate * interlaceGate;
+
+        dstData[outIndex] = Math.min(255, Math.max(0, redSoft * level * rMask + dither));
+        dstData[outIndex + 1] = Math.min(255, Math.max(0, greenSoft * level * gMask + dither));
+        dstData[outIndex + 2] = Math.min(255, Math.max(0, blueSoft * level * bMask + dither));
+        dstData[outIndex + 3] = 255;
+      }
+    }
+
+    wctx.putImageData(outPixels, 0, 0);
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = "high";
+    outCtx.drawImage(this.workCanvas, 0, 0);
+
+    if (ghosting > 0) {
+      const ghostShift = Math.round((0.5 + ghosting * 3.5) * Math.sin(temporalSeconds * 1.7));
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.42, ghosting * 0.45);
+      outCtx.drawImage(this.workCanvas, ghostShift, 0);
+      outCtx.restore();
+    }
+
+    if (focusBreathing > 0) {
+      const breathWave = Math.sin(temporalSeconds * 1.17 + 1.3) * 0.5 + 0.5;
+      const blurPx = (0.2 + breathWave * 1.8) * focusBreathing;
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.55, focusBreathing * 0.6);
+      outCtx.filter = `blur(${blurPx.toFixed(2)}px)`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+    }
+
+    if (generationLoss > 0) {
+      const dubPasses = Math.max(1, Math.floor(1 + generationLoss * 3));
+      for (let i = 0; i < dubPasses; i++) {
+        const shift = Math.round((i + 1) * (0.5 + generationLoss * 1.8));
+        const sat = Math.max(0.25, 1 - generationLoss * (0.26 + i * 0.07));
+        const contrast = Math.max(0.65, 1 - generationLoss * (0.12 + i * 0.04));
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.34, 0.11 + generationLoss * 0.2);
+        outCtx.filter = `blur(${(generationLoss * (0.9 + i * 0.45)).toFixed(2)}px) saturate(${sat.toFixed(3)}) contrast(${contrast.toFixed(3)})`;
+        outCtx.drawImage(outCtx.canvas, shift, 0);
+        outCtx.drawImage(outCtx.canvas, -shift, 0);
+        outCtx.restore();
+      }
+    }
+
+    if (cctvMonochrome > 0) {
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.9, 0.2 + cctvMonochrome * 0.7);
+      outCtx.filter = `grayscale(1) contrast(${(1 + cctvMonochrome * 0.22).toFixed(3)}) brightness(${(0.95 + cctvMonochrome * 0.08).toFixed(3)})`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+
+      outCtx.save();
+      outCtx.globalCompositeOperation = "multiply";
+      outCtx.globalAlpha = cctvMonochrome * 0.25;
+      outCtx.fillStyle = "rgb(145 182 148)";
+      outCtx.fillRect(0, 0, width, height);
+      outCtx.restore();
+    }
+
+    const bloom = params.bloom;
+    if (bloom > 0) {
+      outCtx.save();
+      outCtx.globalCompositeOperation = "screen";
+      outCtx.globalAlpha = Math.min(0.8, (0.16 + bloom * 0.34) * pixelInfluence);
+      outCtx.filter = `blur(${(0.8 + bloom * 5.6) * (1 + (pixelSize - 1) * 0.12)}px) brightness(${1 + bloom * 0.55})`;
+      outCtx.drawImage(this.workCanvas, 0, 0);
+      outCtx.restore();
+
+      outCtx.save();
+      outCtx.globalCompositeOperation = "lighter";
+      outCtx.globalAlpha = Math.min(0.7, (0.08 + bloom * 0.24) * pixelInfluence);
+      outCtx.filter = `blur(${(0.4 + bloom * 2.4) * (1 + (pixelSize - 1) * 0.1)}px)`;
+      outCtx.drawImage(this.workCanvas, 1, 0);
+      outCtx.drawImage(this.workCanvas, -1, 0);
+      outCtx.restore();
+    }
+
+    const vignette = Math.min(0.35, 0.08 + Math.abs(barrel) * 0.22);
+    const grad = outCtx.createRadialGradient(
+      width * 0.5,
+      height * 0.5,
+      Math.min(width, height) * 0.22,
+      width * 0.5,
+      height * 0.5,
+      Math.max(width, height) * 0.6,
+    );
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, `rgba(0,0,0,${vignette.toFixed(3)})`);
+    outCtx.fillStyle = grad;
+    outCtx.fillRect(0, 0, width, height);
+
+    const flickerWaveA = Math.sin(temporalSeconds * Math.PI * 2 * 1.94) * 0.5 + 0.5;
+    const flickerWaveB = Math.sin(temporalSeconds * Math.PI * 2 * 0.61 + 1.7) * 0.5 + 0.5;
+    const flicker = params.flicker * (0.4 + 0.6 * (0.65 * flickerWaveA + 0.35 * flickerWaveB));
+    outCtx.fillStyle = `rgba(255,255,255,${(flicker * 0.2).toFixed(3)})`;
+    outCtx.fillRect(0, 0, width, height);
+
+    const retraceY = ((temporalSeconds * 1.45) % 1) * height;
+    const retraceBand = Math.max(6, Math.floor(height * 0.02));
+    const retraceGrad = outCtx.createLinearGradient(0, retraceY - retraceBand, 0, retraceY + retraceBand);
+    retraceGrad.addColorStop(0, "rgba(255,255,255,0)");
+    retraceGrad.addColorStop(0.5, `rgba(255,255,255,${(params.flicker * 0.12).toFixed(3)})`);
+    retraceGrad.addColorStop(1, "rgba(255,255,255,0)");
+    outCtx.fillStyle = retraceGrad;
+    outCtx.fillRect(0, retraceY - retraceBand, width, retraceBand * 2);
+
+    const jitterPx = (params.flicker + lineJitter * 0.45) * (seededNoise(temporalFrame, temporalSeconds, 17) - 0.5) * 2.6;
+    if (Math.abs(jitterPx) > 0.01) {
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.18, 0.05 + params.flicker * 0.12 + lineJitter * 0.08);
+      outCtx.drawImage(outCtx.canvas, jitterPx, 0);
+      outCtx.restore();
+    }
+
+    if (rfInterference > 0) {
+      const bandCount = Math.max(1, Math.floor(1 + rfInterference * 5));
+      for (let i = 0; i < bandCount; i++) {
+        const bandPos = seededNoise(i + temporalFrame * 0.17, temporalSeconds, 77);
+        const bandY = Math.floor(bandPos * height);
+        const bandH = Math.max(2, Math.floor(height * (0.004 + rfInterference * 0.018)));
+        const alpha = (0.03 + seededNoise(i, temporalFrame, 78) * 0.12) * rfInterference;
+        outCtx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+        outCtx.fillRect(0, bandY, width, bandH);
+      }
+    }
+
+    if (exposurePump > 0 || whiteBalanceDrift > 0) {
+      const exposureWave = 1 + (Math.sin(temporalSeconds * 1.53) * 0.5 + 0.5) * exposurePump * 0.28;
+      const warmShift = (Math.sin(temporalSeconds * 0.37 + 2.4) * 0.5 + 0.5) * whiteBalanceDrift;
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.35, exposurePump * 0.35);
+      outCtx.filter = `brightness(${exposureWave.toFixed(3)})`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+
+      if (whiteBalanceDrift > 0) {
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.22, 0.05 + whiteBalanceDrift * 0.2);
+        const r = Math.round(30 + warmShift * 70);
+        const g = Math.round(18 + warmShift * 28);
+        const b = Math.round(40 + (1 - warmShift) * 80);
+        outCtx.fillStyle = `rgb(${r} ${g} ${b})`;
+        outCtx.globalCompositeOperation = "screen";
+        outCtx.fillRect(0, 0, width, height);
+        outCtx.restore();
+      }
+    }
+
+    if (params.noise > 0) {
+      const count = Math.floor(width * height * 0.008 * params.noise);
+      for (let i = 0; i < count; i++) {
+        const x = Math.floor(seededNoise(i, seconds, frameIndex) * width);
+        const y = Math.floor(seededNoise(i * 2, seconds + 3.1, frameIndex) * height);
+        const grain = seededNoise(x + temporalFrame * 0.3, y, temporalFrame);
+        const a = (0.02 + grain * 0.28) * params.noise;
+        outCtx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        outCtx.fillRect(x, y, 1, 1);
+      }
+
+      const burst = seededNoise(temporalFrame, temporalSeconds * 10, 91);
+      if (burst > 0.91) {
+        const bandY = Math.floor(seededNoise(temporalFrame, burst, 37) * height);
+        const bandH = Math.max(3, Math.floor(height * 0.012));
+        outCtx.fillStyle = `rgba(255,255,255,${(params.noise * 0.22).toFixed(3)})`;
+        outCtx.fillRect(0, bandY, width, bandH);
+      }
+    }
+
+    if (macroBlocking > 0.01) {
+      const pixelCount = Math.max(1, width * height);
+      const perfBudget = Math.min(1, 921600 / pixelCount);
+      const resolutionPenalty = Math.min(1, 2073600 / pixelCount);
+      const effectiveMacro = macroBlocking * (0.3 + perfBudget * 0.45 + resolutionPenalty * 0.25);
+      const blockSize = Math.max(6, Math.round(6 + effectiveMacro * 22 + (1 - resolutionPenalty) * 14));
+      const lowW = Math.max(1, Math.floor(width / blockSize));
+      const lowH = Math.max(1, Math.floor(height / blockSize));
+
+      if (this.tempCanvas.width !== lowW) this.tempCanvas.width = lowW;
+      if (this.tempCanvas.height !== lowH) this.tempCanvas.height = lowH;
+      const tctx = this.tempCanvas.getContext("2d");
+      tctx.imageSmoothingEnabled = true;
+      tctx.imageSmoothingQuality = "low";
+      tctx.drawImage(outCtx.canvas, 0, 0, lowW, lowH);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.72, 0.12 + effectiveMacro * 0.44);
+      outCtx.drawImage(this.tempCanvas, 0, 0, lowW, lowH, 0, 0, width, height);
+      outCtx.restore();
+
+      const shouldDrawMacroGrid = effectiveMacro > 0.35 && pixelCount <= 2073600;
+      if (shouldDrawMacroGrid) {
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.1, effectiveMacro * 0.08);
+        outCtx.fillStyle = "rgb(0 0 0)";
+        for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
+        for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
+        outCtx.restore();
+      }
+    }
+
+    if (quantization > 0.01) {
+      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
+      const sampleScale = Math.max(1, Math.round(1 + quantization * (2 + (1 - perfBudget) * 4)));
+      const qW = Math.max(1, Math.floor(width / sampleScale));
+      const qH = Math.max(1, Math.floor(height / sampleScale));
+      if (this.quantCanvas.width !== qW) this.quantCanvas.width = qW;
+      if (this.quantCanvas.height !== qH) this.quantCanvas.height = qH;
+      const qctx = this.quantCanvas.getContext("2d", { willReadFrequently: true });
+      qctx.clearRect(0, 0, qW, qH);
+      qctx.imageSmoothingEnabled = true;
+      qctx.imageSmoothingQuality = "low";
+      qctx.drawImage(outCtx.canvas, 0, 0, qW, qH);
+
+      const levels = Math.max(6, Math.round(72 - quantization * 60));
+      const imageData = qctx.getImageData(0, 0, qW, qH);
+      const data = imageData.data;
+      const inv = 255 / (levels - 1);
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.round((data[i] / 255) * (levels - 1)) * inv;
+        data[i + 1] = Math.round((data[i + 1] / 255) * (levels - 1)) * inv;
+        data[i + 2] = Math.round((data[i + 2] / 255) * (levels - 1)) * inv;
+      }
+      qctx.putImageData(imageData, 0, 0);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.92, 0.35 + quantization * 0.55);
+      outCtx.drawImage(this.quantCanvas, 0, 0, qW, qH, 0, 0, width, height);
+      outCtx.restore();
+    }
+
+    if (timestampOSD > 0) {
+      const stampDate = new Date(osdStartDate.getTime());
+      stampDate.setSeconds(stampDate.getSeconds() + Math.floor(osdElapsedSeconds));
+      const stamp = `${String(stampDate.getMonth() + 1).padStart(2, "0")}/${String(stampDate.getDate()).padStart(2, "0")}/${String(stampDate.getFullYear()).slice(-2)} ${String(stampDate.getHours()).padStart(2, "0")}:${String(stampDate.getMinutes()).padStart(2, "0")}:${String(stampDate.getSeconds()).padStart(2, "0")}`;
+      const flickerAlpha = 0.35 + seededNoise(temporalFrame, temporalSeconds, 113) * 0.45;
+      const osdAlpha = Math.min(0.9, timestampOSD * flickerAlpha);
+      const padX = Math.floor(width * 0.03);
+      const padY = Math.floor(height * 0.95);
+
+      outCtx.save();
+      outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px ${osdFontByPreset[osdFontPreset] || osdFontByPreset.vhs}`;
+      outCtx.textBaseline = "bottom";
+      outCtx.globalAlpha = osdAlpha;
+
+      if (osdStyle === 0) {
+        outCtx.fillStyle = osdPrimaryColor;
+        outCtx.fillText(stamp, padX, padY);
+      } else if (osdStyle === 1) {
+        outCtx.fillStyle = "rgb(237 244 255)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillStyle = osdAccentColor;
+        outCtx.fillText("REC", padX, Math.floor(height * 0.08));
+      } else if (osdStyle === 2) {
+        outCtx.fillStyle = osdPrimaryColor;
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CH 03", Math.floor(width * 0.03), Math.floor(height * 0.09));
+        outCtx.fillText("SP", Math.floor(width * 0.9), Math.floor(height * 0.09));
+      } else {
+        outCtx.fillStyle = osdPrimaryColor;
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CAM 4", Math.floor(width * 0.82), Math.floor(height * 0.09));
+      }
+
+      outCtx.restore();
+    }
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+function getAvcCodecForResolution(width, height) {
+  const macroblocksPerFrame = Math.ceil(width / 16) * Math.ceil(height / 16);
+
+  // AVC level limits (max frame size in macroblocks).
+  const levelByMaxFs = [
+    { maxFs: 99, levelHex: "0a" },
+    { maxFs: 396, levelHex: "15" },
+    { maxFs: 1620, levelHex: "1e" },
+    { maxFs: 3600, levelHex: "1f" },
+    { maxFs: 8192, levelHex: "28" },
+    { maxFs: 8704, levelHex: "29" },
+    { maxFs: 22080, levelHex: "32" },
+    { maxFs: 36864, levelHex: "33" },
+    { maxFs: 139264, levelHex: "34" },
+  ];
+
+  const match = levelByMaxFs.find((entry) => macroblocksPerFrame <= entry.maxFs);
+  const levelHex = match ? match.levelHex : "34";
+
+  // Baseline profile (42 00) + computed level to avoid level-3.1 limits on larger videos.
+  return `avc1.4200${levelHex}`;
+}
+
+function getTargetBitrate(width, height, fps) {
+  const pixelsPerSecond = width * height * Math.max(1, fps);
+  const estimated = Math.round(pixelsPerSecond * 0.11);
+  return Math.max(5_000_000, Math.min(35_000_000, estimated));
+}
+
+function getEvenFrameSize(width, height) {
+  const safeWidth = Math.max(1, Math.floor(width));
+  const safeHeight = Math.max(1, Math.floor(height));
   return {
     id,
     name: entry?.name || id,
@@ -199,10 +903,9 @@ function buildPresetSystem(rawLibrary) {
   let loadedSourceType = "image";
   let loadedVideo = null;
   let loadedImage = null;
-  let presetSystem = buildPresetSystem(window.CRT_PRESET_LIBRARY || Object.entries(FALLBACK_PRESETS).map(([name, values], index) => ({ id: `fallback-${index + 1}`, name, values, type: "CRT", era: "1980s", damageLevel: "mild", signalFamily: "analog", tags: ["fallback"], sortOrder: index })));
-  let presets = { ...presetSystem.presets };
-  let presetRecords = presetSystem.records;
-  let presetMetadataById = presetSystem.byId;
+  let presets = { ...FALLBACK_PRESETS };
+  let presetRecords = Object.entries(FALLBACK_PRESETS).map(([name, values], index) => inferLegacyPresetMetadata(name, values, index));
+  let presetMetaByName = Object.fromEntries(presetRecords.map((record) => [record.name, record]));
   let presetFilters = { type: "all", era: "all", damageLevel: "all" };
   let start = performance.now();
   let previewFrameSeconds = 0;
@@ -1049,50 +1752,51 @@ function buildPresetSystem(rawLibrary) {
     presetDirtyTag.hidden = !(changedSliders || changedMask);
   }
 
-  function getFilteredPresetRecords() {
+  function getFilteredPresetNames() {
     return presetRecords.filter((record) => {
       if (presetFilters.type !== "all" && record.type !== presetFilters.type) return false;
       if (presetFilters.era !== "all" && record.era !== presetFilters.era) return false;
       if (presetFilters.damageLevel !== "all" && record.damageLevel !== presetFilters.damageLevel) return false;
       return true;
-    });
+    }).map((record) => record.name);
   }
 
-  function renderPresetMeta(presetId) {
+  function renderPresetMeta(name) {
     if (!presetMeta) return;
-    const meta = presetMetadataById[presetId];
+    const meta = presetMetaByName[name];
     if (!meta) {
       presetMeta.innerHTML = "";
       return;
     }
-    presetMeta.innerHTML = `<strong>${meta.name}</strong><div>${meta.description}</div><div class="preset-meta-tags">${meta.type} · ${meta.era} · ${meta.signalFamily} · ${meta.damageLevel}</div><div>${meta.signalChain}</div><div class="preset-meta-context">${meta.historicalContext}</div><div>Realism score: ${meta.realismScore.toFixed(1)}/10</div>`;
+    presetMeta.innerHTML = `<strong>${meta.name}</strong><div>${meta.description}</div><div class="preset-meta-tags">${meta.type} · ${meta.era} · ${meta.signalFamily} · ${meta.damageLevel}</div><div>${meta.signalChain}</div><div class="preset-meta-context">${meta.historicalContext}</div><div>Realism score: ${Number(meta.realismScore || 8).toFixed(1)}/10</div>`;
   }
 
   function initializePresetFilters() {
-    const unique = (key) => ["all", ...Array.from(new Set(presetRecords.map((r) => r[key])) )];
-    const populate = (el, values) => {
+    const buildOptions = (key) => ["all", ...Array.from(new Set(presetRecords.map((record) => record[key]).filter(Boolean)))];
+    const mount = (el, values) => {
       if (!el) return;
       el.innerHTML = "";
-      for (const value of values) {
+      values.forEach((value) => {
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.value = value;
         button.textContent = value === "all" ? "All" : value;
         if (value === "all") button.dataset.selected = "true";
         el.appendChild(button);
-      }
+      });
     };
-    populate(presetFilterType, unique("type"));
-    populate(presetFilterEra, unique("era"));
-    populate(presetFilterDamage, unique("damageLevel"));
 
-    setupSelectionBox("presetFilterType", { onChange: (value) => { presetFilters.type = value; initializePresets(); } });
-    setupSelectionBox("presetFilterEra", { onChange: (value) => { presetFilters.era = value; initializePresets(); } });
-    setupSelectionBox("presetFilterDamage", { onChange: (value) => { presetFilters.damageLevel = value; initializePresets(); } });
+    mount(presetFilterType, buildOptions("type"));
+    mount(presetFilterEra, buildOptions("era"));
+    mount(presetFilterDamage, buildOptions("damageLevel"));
+
+    setupSelectionBox("presetFilterType", { onChange: (value) => { presetFilters.type = value; initializePresets(activePresetName); } });
+    setupSelectionBox("presetFilterEra", { onChange: (value) => { presetFilters.era = value; initializePresets(activePresetName); } });
+    setupSelectionBox("presetFilterDamage", { onChange: (value) => { presetFilters.damageLevel = value; initializePresets(activePresetName); } });
   }
 
-  function initializePresets(preferredId = activePresetName) {
-    const visibleRecords = getFilteredPresetRecords();
+  function initializePresets(preferredName = activePresetName) {
+    const names = getFilteredPresetNames();
     presetSelect.innerHTML = "";
 
     if (visibleRecords.length === 0) {
@@ -1100,15 +1804,16 @@ function buildPresetSystem(rawLibrary) {
       message.className = "selection-empty";
       message.textContent = "No presets match current filters";
       presetSelect.appendChild(message);
+      renderPresetMeta("");
       return;
     }
 
     for (const record of visibleRecords) {
       const button = document.createElement("button");
       button.type = "button";
-      button.dataset.value = record.id;
-      button.textContent = record.name;
-      if (record.id === preferredId) button.dataset.selected = "true";
+      button.dataset.value = name;
+      button.textContent = name;
+      if (name === preferredName) button.dataset.selected = "true";
       presetSelect.appendChild(button);
     }
 
@@ -1118,18 +1823,18 @@ function buildPresetSystem(rawLibrary) {
           presetIntensityInput.value = "1";
           presetIntensityInput.__syncRangeNumber?.();
         }
-        applyPreset(presetId, 1);
-        renderPresetMeta(presetId);
+        applyPreset(name, 1);
+        renderPresetMeta(name);
         markPreviewDirty();
         progressEl.value = 0;
         setStatus(`Preset applied: ${presetMetadataById[presetId]?.name || presetId}`, "success");
       },
     });
 
-    const defaultPresetId = visibleRecords.find((r) => r.id === preferredId)?.id || visibleRecords[0].id;
-    presetControl.setValue(defaultPresetId, { silent: true });
-    applyPreset(defaultPresetId, Number(presetIntensityInput?.value || 1));
-    renderPresetMeta(defaultPresetId);
+    const defaultPreset = names.includes(preferredName) ? preferredName : (names.includes("Consumer TV") ? "Consumer TV" : names[0]);
+    presetControl.setValue(defaultPreset, { silent: true });
+    applyPreset(defaultPreset, Number(presetIntensityInput?.value || 1));
+    renderPresetMeta(defaultPreset);
     updatePresetDirtyState();
   }
 
@@ -1797,11 +2502,11 @@ function buildPresetSystem(rawLibrary) {
   setExportAvailability();
   loadParameterPolicyState();
   buildMacroPolicyControls();
-  loadMergedPresetLibrary(window.CRT_PRESET_LIBRARY || Object.entries(FALLBACK_PRESETS).map(([name, values], index) => ({ id: `fallback-${index + 1}`, name, values, type: "CRT", era: "1980s", damageLevel: "mild", signalFamily: "analog", tags: ["fallback"], sortOrder: index }))).then((library) => {
-    presetSystem = buildPresetSystem(library);
-    presets = { ...presetSystem.presets };
-    presetRecords = presetSystem.records;
-    presetMetadataById = presetSystem.byId;
+
+  loadMergedPresetLibrary().then((records) => {
+    presetRecords = records;
+    presetMetaByName = Object.fromEntries(records.map((record) => [record.name, record]));
+    presets = Object.fromEntries(records.map((record) => [record.name, record.values]));
     initializePresetFilters();
     initializePresets(activePresetName);
     updatePresetDirtyState();
