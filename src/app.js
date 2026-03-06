@@ -1883,13 +1883,15 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
         loadedImage = imageSource;
         renderer.setImage(imageSource, getSourceScale());
         loadedSourceType = "image";
+        canvas.width = imageSource.naturalWidth || imageSource.width || canvas.width;
+        canvas.height = imageSource.naturalHeight || imageSource.height || canvas.height;
         previewTargetSeconds = 0;
         previewFrameSeconds = 0;
         syncPreviewTimeControl();
         updatePreviewControlsState();
         updateExportControlsState();
         markPreviewDirty();
-        setStatus(`Loaded image ${file.name}. Ready to export.`, "success");
+        setStatus(`Loaded image ${file.name} (${canvas.width}x${canvas.height}). Ready to export.`, "success");
       }
 
       progressEl.value = 1;
