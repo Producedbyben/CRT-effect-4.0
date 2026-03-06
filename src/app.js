@@ -28,11 +28,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "PVM/BVM": {
     scanlineStrength: 0.25,
     phosphorMask: 0.6,
-    barrelDistortion: 0.08,
+    barrelDistortion: -0.031,
     bloom: 0.2,
     flicker: 0.12,
     chromaticAberration: 0.08,
@@ -58,11 +59,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   Arcade: {
     scanlineStrength: 0.4,
     phosphorMask: 0.45,
-    barrelDistortion: 0.12,
+    barrelDistortion: -0.047,
     bloom: 0.55,
     flicker: 0.2,
     chromaticAberration: 0.2,
@@ -88,11 +90,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Late-80s Home VHS": {
     scanlineStrength: 0.52,
     phosphorMask: 0.26,
-    barrelDistortion: 0.24,
+    barrelDistortion: -0.094,
     bloom: 0.62,
     flicker: 0.16,
     chromaticAberration: 0.51,
@@ -118,11 +121,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "90s Rental Tape (3rd Gen Dub)": {
     scanlineStrength: 0.59,
     phosphorMask: 0.2,
-    barrelDistortion: 0.28,
+    barrelDistortion: -0.109,
     bloom: 0.7,
     flicker: 0.2,
     chromaticAberration: 0.62,
@@ -148,11 +152,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0.05,
     advancedQuantization: 0.18,
     advancedGenerationLoss: 0.72,
+    advancedMacroBlocking: 0.42,
   },
   "Hi8 Vacation Cam": {
     scanlineStrength: 0.41,
     phosphorMask: 0.32,
-    barrelDistortion: 0.15,
+    barrelDistortion: -0.058,
     bloom: 0.46,
     flicker: 0.11,
     chromaticAberration: 0.24,
@@ -178,11 +183,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "MiniDV Family Cam (2002)": {
     scanlineStrength: 0.3,
     phosphorMask: 0.44,
-    barrelDistortion: 0.1,
+    barrelDistortion: -0.039,
     bloom: 0.32,
     flicker: 0.08,
     chromaticAberration: 0.17,
@@ -208,11 +214,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Off-Air Analog Broadcast": {
     scanlineStrength: 0.45,
     phosphorMask: 0.38,
-    barrelDistortion: 0.21,
+    barrelDistortion: -0.082,
     bloom: 0.52,
     flicker: 0.14,
     chromaticAberration: 0.37,
@@ -238,11 +245,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Public Access Archive": {
     scanlineStrength: 0.43,
     phosphorMask: 0.34,
-    barrelDistortion: 0.18,
+    barrelDistortion: -0.07,
     bloom: 0.48,
     flicker: 0.13,
     chromaticAberration: 0.33,
@@ -268,55 +276,57 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Early Web Rip (2006)": {
-    scanlineStrength: 0.37,
-    phosphorMask: 0.28,
-    barrelDistortion: 0.1,
-    bloom: 0.27,
-    flicker: 0.06,
-    chromaticAberration: 0.2,
-    noise: 0.3,
+    scanlineStrength: 0,
+    phosphorMask: 0,
+    barrelDistortion: 0,
+    bloom: 0.04,
+    flicker: 0,
+    chromaticAberration: 0.02,
+    noise: 0.06,
     pixelSize: 4,
     maskScale: 1.3,
-    advancedLineJitter: 0.06,
-    advancedTimebaseWobble: 0.08,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
     advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.18,
-    advancedCrossColor: 0.22,
-    advancedDropouts: 0.14,
-    advancedGhosting: 0.2,
-    advancedInterlacing: 0.14,
-    advancedFrameStutter: 0.36,
-    advancedRfInterference: 0.08,
-    advancedExposurePump: 0.06,
-    advancedWhiteBalanceDrift: 0.09,
-    advancedFocusBreathing: 0.08,
-    advancedTapeCrease: 0.05,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0.24,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
     advancedTimestampOSD: 0.31,
     advancedOSDStyle: 1,
     advancedCctvMonochrome: 0,
-    advancedQuantization: 0.74,
-    advancedGenerationLoss: 0.43,
+    advancedQuantization: 0.46,
+    advancedGenerationLoss: 0.18,
+    advancedMacroBlocking: 0.34,
   },
   "Security Camera Dump": {
-    scanlineStrength: 0.46,
-    phosphorMask: 0.22,
-    barrelDistortion: 0.06,
-    bloom: 0.22,
-    flicker: 0.09,
-    chromaticAberration: 0.14,
-    noise: 0.41,
+    scanlineStrength: 0,
+    phosphorMask: 0,
+    barrelDistortion: 0,
+    bloom: 0.02,
+    flicker: 0,
+    chromaticAberration: 0.02,
+    noise: 0.2,
     pixelSize: 5,
     maskScale: 1.5,
-    advancedLineJitter: 0.18,
-    advancedTimebaseWobble: 0.17,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
     advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.16,
-    advancedCrossColor: 0.18,
-    advancedDropouts: 0.33,
-    advancedGhosting: 0.15,
-    advancedInterlacing: 0.28,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0.02,
+    advancedGhosting: 0.03,
+    advancedInterlacing: 0,
     advancedFrameStutter: 0.52,
     advancedRfInterference: 0.19,
     advancedExposurePump: 0.12,
@@ -325,14 +335,15 @@ const FALLBACK_PRESETS = {
     advancedTapeCrease: 0.18,
     advancedTimestampOSD: 0.76,
     advancedOSDStyle: 3,
-    advancedCctvMonochrome: 0.86,
-    advancedQuantization: 0.66,
-    advancedGenerationLoss: 0.38,
+    advancedCctvMonochrome: 0.72,
+    advancedQuantization: 0.42,
+    advancedGenerationLoss: 0.2,
+    advancedMacroBlocking: 0.3,
   },
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
     phosphorMask: 0.24,
-    barrelDistortion: 0.26,
+    barrelDistortion: -0.101,
     bloom: 0.76,
     flicker: 0.24,
     chromaticAberration: 0.58,
@@ -358,11 +369,12 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Damaged Archive Recovery": {
     scanlineStrength: 0.49,
     phosphorMask: 0.27,
-    barrelDistortion: 0.19,
+    barrelDistortion: -0.074,
     bloom: 0.58,
     flicker: 0.18,
     chromaticAberration: 0.46,
@@ -388,6 +400,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0.24,
     advancedQuantization: 0.4,
     advancedGenerationLoss: 0.79,
+    advancedMacroBlocking: 0.58,
   },
 };
 
@@ -410,6 +423,8 @@ class CRTRenderer {
     this.sourceCanvas = document.createElement("canvas");
     this.fitCanvas = document.createElement("canvas");
     this.workCanvas = document.createElement("canvas");
+    this.tempCanvas = document.createElement("canvas");
+    this.quantCanvas = document.createElement("canvas");
     this.hasImage = false;
   }
 
@@ -486,7 +501,9 @@ class CRTRenderer {
     const srcData = srcPixels.data;
     const dstData = outPixels.data;
 
-    const barrel = Math.max(-0.8, Math.min(0.8, params.barrelDistortion));
+    const barrel = Math.max(-0.3, Math.min(0.3, params.barrelDistortion));
+    const barrelCornerWarp = Math.max(0.35, 1 + barrel * (0.22 + 0.78 * 2));
+    const barrelOverscan = barrel < 0 ? barrelCornerWarp : 1;
     const ca = params.chromaticAberration;
     const scan = params.scanlineStrength;
     const mask = params.phosphorMask;
@@ -528,6 +545,7 @@ class CRTRenderer {
     const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
     const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
     const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
+    const macroBlocking = Math.max(0, Math.min(1, Number(params.advancedMacroBlocking) || 0));
 
     const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
     const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
@@ -552,19 +570,12 @@ class CRTRenderer {
         const creaseDistance = Math.abs(y / Math.max(1, height - 1) - creaseCenter);
         const creaseWarp = tapeCrease > 0 ? Math.max(0, 1 - creaseDistance / 0.045) * tapeCrease * (0.015 + seededNoise(temporalFrame, y, 41) * 0.02) : 0;
 
-        const srcNx = nx / warp + wobble + perLineJitter + baseHeadSwitching + creaseWarp;
-        const srcNy = ny / warp;
-        const u = srcNx * 0.5 + 0.5;
-        const v = srcNy * 0.5 + 0.5;
+        const srcNx = (nx / warp) * barrelOverscan + wobble + perLineJitter + baseHeadSwitching + creaseWarp;
+        const srcNy = (ny / warp) * barrelOverscan;
+        const u = Math.max(0, Math.min(1, srcNx * 0.5 + 0.5));
+        const v = Math.max(0, Math.min(1, srcNy * 0.5 + 0.5));
 
         const outIndex = (y * width + x) * 4;
-        if (u < 0 || u > 1 || v < 0 || v > 1) {
-          dstData[outIndex] = 0;
-          dstData[outIndex + 1] = 0;
-          dstData[outIndex + 2] = 0;
-          dstData[outIndex + 3] = 255;
-          continue;
-        }
 
         const edgeShift = ca * (0.0012 + r2 * 0.0045) * (0.8 + (pixelSize - 1) * 0.22);
         const qx = Math.floor((u * width) / pixelSize) * pixelSize + pixelSize * 0.5;
@@ -794,9 +805,52 @@ class CRTRenderer {
       }
     }
 
-    if (quantization > 0) {
-      const levels = Math.max(4, Math.round(64 - quantization * 56));
-      const imageData = outCtx.getImageData(0, 0, width, height);
+    if (macroBlocking > 0.01) {
+      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
+      const effectiveMacro = macroBlocking * (0.45 + perfBudget * 0.55);
+      const blockSize = Math.max(4, Math.round(4 + effectiveMacro * 16));
+      const lowW = Math.max(1, Math.floor(width / blockSize));
+      const lowH = Math.max(1, Math.floor(height / blockSize));
+
+      if (this.tempCanvas.width !== lowW) this.tempCanvas.width = lowW;
+      if (this.tempCanvas.height !== lowH) this.tempCanvas.height = lowH;
+      const tctx = this.tempCanvas.getContext("2d");
+      tctx.clearRect(0, 0, lowW, lowH);
+      tctx.imageSmoothingEnabled = true;
+      tctx.imageSmoothingQuality = "low";
+      tctx.drawImage(outCtx.canvas, 0, 0, lowW, lowH);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.8, 0.14 + effectiveMacro * 0.52);
+      outCtx.drawImage(this.tempCanvas, 0, 0, lowW, lowH, 0, 0, width, height);
+      outCtx.restore();
+
+      if (effectiveMacro > 0.28) {
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.14, effectiveMacro * 0.12);
+        outCtx.fillStyle = "rgb(0 0 0)";
+        for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
+        for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
+        outCtx.restore();
+      }
+    }
+
+    if (quantization > 0.01) {
+      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
+      const sampleScale = Math.max(1, Math.round(1 + quantization * (2 + (1 - perfBudget) * 4)));
+      const qW = Math.max(1, Math.floor(width / sampleScale));
+      const qH = Math.max(1, Math.floor(height / sampleScale));
+      if (this.quantCanvas.width !== qW) this.quantCanvas.width = qW;
+      if (this.quantCanvas.height !== qH) this.quantCanvas.height = qH;
+      const qctx = this.quantCanvas.getContext("2d", { willReadFrequently: true });
+      qctx.clearRect(0, 0, qW, qH);
+      qctx.imageSmoothingEnabled = true;
+      qctx.imageSmoothingQuality = "low";
+      qctx.drawImage(outCtx.canvas, 0, 0, qW, qH);
+
+      const levels = Math.max(6, Math.round(72 - quantization * 60));
+      const imageData = qctx.getImageData(0, 0, qW, qH);
       const data = imageData.data;
       const inv = 255 / (levels - 1);
       for (let i = 0; i < data.length; i += 4) {
@@ -804,7 +858,13 @@ class CRTRenderer {
         data[i + 1] = Math.round((data[i + 1] / 255) * (levels - 1)) * inv;
         data[i + 2] = Math.round((data[i + 2] / 255) * (levels - 1)) * inv;
       }
-      outCtx.putImageData(imageData, 0, 0);
+      qctx.putImageData(imageData, 0, 0);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.92, 0.35 + quantization * 0.55);
+      outCtx.drawImage(this.quantCanvas, 0, 0, qW, qH, 0, 0, width, height);
+      outCtx.restore();
     }
 
     if (timestampOSD > 0) {
@@ -1145,6 +1205,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedCctvMonochrome",
     "advancedQuantization",
     "advancedGenerationLoss",
+    "advancedMacroBlocking",
   ];
 
   let hasLoadedSource = false;
@@ -1192,6 +1253,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     advancedCctvMonochrome: "CCTV monochrome",
     advancedQuantization: "Quantization/crush",
     advancedGenerationLoss: "Generation loss",
+    advancedMacroBlocking: "Macroblocking",
   };
 
   function setupRangeWithNumber(id) {

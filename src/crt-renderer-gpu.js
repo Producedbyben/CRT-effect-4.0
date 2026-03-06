@@ -62,18 +62,16 @@ void main() {
   vec2 uv = v_uv;
   vec2 n = uv * 2.0 - 1.0;
   float r2 = dot(n, n);
-  float warp = max(0.35, 1.0 + clamp(u_barrel, -0.8, 0.8) * (0.22 + 0.78 * r2));
-  vec2 suv = n / warp;
-  uv = suv * 0.5 + 0.5;
+  float barrel = clamp(u_barrel, -0.3, 0.3);
+  float warp = max(0.35, 1.0 + barrel * (0.22 + 0.78 * r2));
+  float cornerWarp = max(0.35, 1.0 + barrel * (0.22 + 0.78 * 2.0));
+  float overscan = (barrel < 0.0) ? cornerWarp : 1.0;
+  vec2 suv = (n / warp) * overscan;
+  uv = clamp(suv * 0.5 + 0.5, 0.0, 1.0);
 
   float jitter = (noise(vec2(floor(gl_FragCoord.y), u_time)) - 0.5) * u_lineJitter * 0.008;
   jitter += sin(u_time * 17.0 + gl_FragCoord.y * 0.06) * u_timeWobble * 0.004;
   uv.x += jitter;
-
-  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-    outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    return;
-  }
 
   float psize = max(1.0, u_pixelSize);
   vec2 q = floor((uv * u_resolution) / psize) * psize + psize * 0.5;
