@@ -1787,20 +1787,31 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       if (!collapseBtn) {
         collapseBtn = document.createElement("button");
         collapseBtn.type = "button";
-        collapseBtn.className = "panel-collapse-btn secondary-btn";
+        collapseBtn.className = "panel-collapse-btn";
         header.appendChild(collapseBtn);
       }
+
+      const isInteractiveTarget = (target) => {
+        if (!(target instanceof Element)) return false;
+        return Boolean(target.closest("button, input, label, select, textarea, a"));
+      };
 
       const setCollapsed = (collapsed) => {
         panel.dataset.collapsed = collapsed ? "true" : "false";
         panel.classList.toggle("panel-collapsed", collapsed);
-        body.hidden = collapsed;
+        body.setAttribute("aria-hidden", collapsed ? "true" : "false");
         collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        collapseBtn.textContent = collapsed ? "Expand" : "Collapse";
+        collapseBtn.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
+        collapseBtn.textContent = collapsed ? "▸" : "▾";
       };
 
       setCollapsed(panel.dataset.collapsed === "true");
       collapseBtn.addEventListener("click", () => {
+        setCollapsed(!(panel.dataset.collapsed === "true"));
+      });
+
+      header.addEventListener("click", (event) => {
+        if (event.target === collapseBtn || isInteractiveTarget(event.target)) return;
         setCollapsed(!(panel.dataset.collapsed === "true"));
       });
     }

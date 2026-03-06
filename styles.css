@@ -31,6 +31,7 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
   color: #e8eef8;
 }
 .panel-body { padding: 0.7rem; display: grid; gap: 0.5rem; }
+.panel-body[hidden] { display: none !important; }
 
 .panel-header-toggle {
   display: flex;
@@ -63,13 +64,28 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
 
 .panel-collapse-btn {
   margin-left: 0.25rem;
-  width: auto;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.7rem;
+  width: 1.45rem;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid #3a4554;
+  background: #1b212a;
+  color: #cad5e7;
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.panel-collapse-btn:hover {
+  background: #212933;
 }
 
 .panel-collapsed {
   border-color: #36404f;
+}
+
+.panel-collapsed > .panel-body {
+  display: none;
 }
 .panel-hint {
   margin: 0;
