@@ -15,13 +15,12 @@ const FALLBACK_PRESETS = {
 
 const MP4_MUXER_CDN = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.2/build/mp4-muxer.mjs";
 
-
 function normalizePresetRecord(entry, index = 0) {
   const values = entry?.values && typeof entry.values === "object" ? entry.values : entry;
-  const name = String(entry?.name || entry?.id || `Preset ${index + 1}`);
+  const safeName = String(entry?.name || entry?.id || `Preset ${index + 1}`);
   return {
-    id: String(entry?.id || name),
-    name,
+    id: String(entry?.id || safeName),
+    name: safeName,
     description: entry?.description || "",
     type: entry?.type || "Experimental",
     era: entry?.era || "2000s",
@@ -48,7 +47,7 @@ function inferLegacyPresetMetadata(name, values = {}, index = 0) {
   else if (lower.includes("archive") || lower.includes("recovery")) type = "Archive";
   else if (lower.includes("crt") || lower.includes("pvm") || lower.includes("arcade") || lower.includes("tv")) type = "CRT";
 
-  const eraMatch = lower.match(/(1920s|1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
+  const eraMatch = lower.match(/(1950s|1960s|1970s|1980s|1990s|2000s|2010s)/);
   const era = eraMatch ? eraMatch[1] : (lower.includes("late-80") ? "1980s" : (lower.includes("90") ? "1990s" : "2000s"));
   const digital = (values.advancedQuantization || 0) + (values.advancedMacroBlocking || 0) + (values.advancedGenerationLoss || 0);
   const analog = (values.advancedHeadSwitching || 0) + (values.advancedTimebaseWobble || 0) + (values.advancedDropouts || 0) + (values.advancedRfInterference || 0);
@@ -59,43 +58,36 @@ function inferLegacyPresetMetadata(name, values = {}, index = 0) {
   return {
     id: `legacy-${index + 1}`,
     name,
-    description: "Legacy preset migrated from original CRT Effect preset pack.",
+    description: "Legacy preset from original CRT-effect preset pack.",
     type,
     era,
     signalFamily,
     damageLevel,
-    tags: ["legacy", "migrated"],
-    signalChain: "Original preset from historical CRT-effect preset pack.",
-    historicalContext: "Migrated into normalized preset architecture for backwards compatibility.",
+    tags: ["legacy"],
+    signalChain: "Legacy preset (chain inferred from parameter profile)",
+    historicalContext: "Migrated to metadata shape for filtering while preserving original values.",
     sortOrder: 1000 + index,
-    realismScore: 8.0,
+    realismScore: 8,
     values,
   };
 }
 
-async function loadMergedPresetLibrary() {
+function loadMergedPresetLibrary() {
+  const mergedByName = new Map();
+  const legacyRecords = Object.entries(FALLBACK_PRESETS).map(([name, values], index) => inferLegacyPresetMetadata(name, values, index));
+  for (const record of legacyRecords) mergedByName.set(record.name, record);
+
   const curated = Array.isArray(window.CRT_PRESET_LIBRARY) ? window.CRT_PRESET_LIBRARY : [];
-  const normalizedCurated = curated.map(normalizePresetRecord);
-  const byName = new Map(normalizedCurated.map((record) => [record.name, record]));
-
-  try {
-    const module = await import("./presets.js");
-    const legacy = module?.PRESETS || {};
-    Object.entries(legacy).forEach(([name, values], index) => {
-      if (byName.has(name)) return;
-      byName.set(name, inferLegacyPresetMetadata(name, values, index));
+  curated.map(normalizePresetRecord).forEach((record) => {
+    const existing = mergedByName.get(record.name);
+    mergedByName.set(record.name, {
+      ...(existing || {}),
+      ...record,
+      values: { ...(existing?.values || {}), ...(record.values || {}) },
     });
-  } catch (error) {
-    console.warn("Could not import presets.js legacy preset pack", error);
-  }
+  });
 
-  if (!byName.size) {
-    Object.entries(FALLBACK_PRESETS).forEach(([name, values], index) => {
-      byName.set(name, inferLegacyPresetMetadata(name, values, index));
-    });
-  }
-
-  return Array.from(byName.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  return Array.from(mergedByName.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 
 function seededNoise(x, y, frame) {
@@ -1772,7 +1764,7 @@ function buildPresetSystem(rawLibrary) {
   }
 
   function initializePresetFilters() {
-    const buildOptions = (key) => ["all", ...Array.from(new Set(presetRecords.map((record) => record[key]).filter(Boolean)))];
+    const options = (key) => ["all", ...Array.from(new Set(presetRecords.map((record) => record[key]).filter(Boolean)))];
     const mount = (el, values) => {
       if (!el) return;
       el.innerHTML = "";
@@ -1786,9 +1778,9 @@ function buildPresetSystem(rawLibrary) {
       });
     };
 
-    mount(presetFilterType, buildOptions("type"));
-    mount(presetFilterEra, buildOptions("era"));
-    mount(presetFilterDamage, buildOptions("damageLevel"));
+    mount(presetFilterType, options("type"));
+    mount(presetFilterEra, options("era"));
+    mount(presetFilterDamage, options("damageLevel"));
 
     setupSelectionBox("presetFilterType", { onChange: (value) => { presetFilters.type = value; initializePresets(activePresetName); } });
     setupSelectionBox("presetFilterEra", { onChange: (value) => { presetFilters.era = value; initializePresets(activePresetName); } });
@@ -2503,14 +2495,10 @@ function buildPresetSystem(rawLibrary) {
   loadParameterPolicyState();
   buildMacroPolicyControls();
 
-  loadMergedPresetLibrary().then((records) => {
-    presetRecords = records;
-    presetMetaByName = Object.fromEntries(records.map((record) => [record.name, record]));
-    presets = Object.fromEntries(records.map((record) => [record.name, record.values]));
-    initializePresetFilters();
-    initializePresets(activePresetName);
-    updatePresetDirtyState();
-  });
+  const mergedPresetRecords = loadMergedPresetLibrary();
+  presetRecords = mergedPresetRecords;
+  presetMetaByName = Object.fromEntries(mergedPresetRecords.map((record) => [record.name, record]));
+  presets = Object.fromEntries(mergedPresetRecords.map((record) => [record.name, record.values]));
 
   initializePresetFilters();
   initializePresets();
