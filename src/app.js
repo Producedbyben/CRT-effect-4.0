@@ -28,6 +28,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "PVM/BVM": {
     scanlineStrength: 0.25,
@@ -58,6 +59,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   Arcade: {
     scanlineStrength: 0.4,
@@ -88,6 +90,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Late-80s Home VHS": {
     scanlineStrength: 0.52,
@@ -118,6 +121,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "90s Rental Tape (3rd Gen Dub)": {
     scanlineStrength: 0.59,
@@ -148,6 +152,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0.05,
     advancedQuantization: 0.18,
     advancedGenerationLoss: 0.72,
+    advancedMacroBlocking: 0.42,
   },
   "Hi8 Vacation Cam": {
     scanlineStrength: 0.41,
@@ -178,6 +183,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "MiniDV Family Cam (2002)": {
     scanlineStrength: 0.3,
@@ -208,6 +214,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Off-Air Analog Broadcast": {
     scanlineStrength: 0.45,
@@ -238,6 +245,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Public Access Archive": {
     scanlineStrength: 0.43,
@@ -268,55 +276,57 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Early Web Rip (2006)": {
-    scanlineStrength: 0.37,
-    phosphorMask: 0.28,
-    barrelDistortion: -0.039,
-    bloom: 0.27,
-    flicker: 0.06,
-    chromaticAberration: 0.2,
-    noise: 0.3,
+    scanlineStrength: 0.06,
+    phosphorMask: 0.04,
+    barrelDistortion: 0,
+    bloom: 0.08,
+    flicker: 0.01,
+    chromaticAberration: 0.04,
+    noise: 0.08,
     pixelSize: 4,
     maskScale: 1.3,
-    advancedLineJitter: 0.06,
-    advancedTimebaseWobble: 0.08,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
     advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.18,
-    advancedCrossColor: 0.22,
-    advancedDropouts: 0.14,
-    advancedGhosting: 0.2,
-    advancedInterlacing: 0.14,
-    advancedFrameStutter: 0.36,
-    advancedRfInterference: 0.08,
-    advancedExposurePump: 0.06,
-    advancedWhiteBalanceDrift: 0.09,
-    advancedFocusBreathing: 0.08,
-    advancedTapeCrease: 0.05,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0,
+    advancedGhosting: 0.02,
+    advancedInterlacing: 0,
+    advancedFrameStutter: 0.31,
+    advancedRfInterference: 0,
+    advancedExposurePump: 0,
+    advancedWhiteBalanceDrift: 0,
+    advancedFocusBreathing: 0,
+    advancedTapeCrease: 0,
     advancedTimestampOSD: 0.31,
     advancedOSDStyle: 1,
     advancedCctvMonochrome: 0,
     advancedQuantization: 0.74,
     advancedGenerationLoss: 0.43,
+    advancedMacroBlocking: 0.68,
   },
   "Security Camera Dump": {
-    scanlineStrength: 0.46,
-    phosphorMask: 0.22,
-    barrelDistortion: -0.023,
-    bloom: 0.22,
-    flicker: 0.09,
-    chromaticAberration: 0.14,
-    noise: 0.41,
+    scanlineStrength: 0,
+    phosphorMask: 0,
+    barrelDistortion: 0,
+    bloom: 0.03,
+    flicker: 0.01,
+    chromaticAberration: 0.03,
+    noise: 0.24,
     pixelSize: 5,
     maskScale: 1.5,
-    advancedLineJitter: 0.18,
-    advancedTimebaseWobble: 0.17,
+    advancedLineJitter: 0,
+    advancedTimebaseWobble: 0,
     advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.16,
-    advancedCrossColor: 0.18,
-    advancedDropouts: 0.33,
-    advancedGhosting: 0.15,
-    advancedInterlacing: 0.28,
+    advancedChromaDelay: 0,
+    advancedCrossColor: 0,
+    advancedDropouts: 0.05,
+    advancedGhosting: 0.06,
+    advancedInterlacing: 0.02,
     advancedFrameStutter: 0.52,
     advancedRfInterference: 0.19,
     advancedExposurePump: 0.12,
@@ -328,6 +338,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0.86,
     advancedQuantization: 0.66,
     advancedGenerationLoss: 0.38,
+    advancedMacroBlocking: 0.52,
   },
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
@@ -358,6 +369,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0,
     advancedQuantization: 0,
     advancedGenerationLoss: 0,
+    advancedMacroBlocking: 0,
   },
   "Damaged Archive Recovery": {
     scanlineStrength: 0.49,
@@ -388,6 +400,7 @@ const FALLBACK_PRESETS = {
     advancedCctvMonochrome: 0.24,
     advancedQuantization: 0.4,
     advancedGenerationLoss: 0.79,
+    advancedMacroBlocking: 0.58,
   },
 };
 
@@ -530,6 +543,7 @@ class CRTRenderer {
     const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
     const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
     const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
+    const macroBlocking = Math.max(0, Math.min(1, Number(params.advancedMacroBlocking) || 0));
 
     const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
     const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
@@ -787,6 +801,33 @@ class CRTRenderer {
         outCtx.fillStyle = `rgba(255,255,255,${(params.noise * 0.22).toFixed(3)})`;
         outCtx.fillRect(0, bandY, width, bandH);
       }
+    }
+
+    if (macroBlocking > 0) {
+      const blockSize = Math.max(3, Math.round(3 + macroBlocking * 18));
+      const lowW = Math.max(1, Math.floor(width / blockSize));
+      const lowH = Math.max(1, Math.floor(height / blockSize));
+
+      this.tempCanvas.width = lowW;
+      this.tempCanvas.height = lowH;
+      const tctx = this.tempCanvas.getContext("2d");
+      tctx.clearRect(0, 0, lowW, lowH);
+      tctx.imageSmoothingEnabled = true;
+      tctx.imageSmoothingQuality = "low";
+      tctx.drawImage(outCtx.canvas, 0, 0, lowW, lowH);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.88, 0.2 + macroBlocking * 0.55);
+      outCtx.drawImage(this.tempCanvas, 0, 0, lowW, lowH, 0, 0, width, height);
+      outCtx.restore();
+
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.18, macroBlocking * 0.15);
+      outCtx.fillStyle = "rgb(0 0 0)";
+      for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
+      for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
+      outCtx.restore();
     }
 
     if (quantization > 0) {
@@ -1140,6 +1181,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedCctvMonochrome",
     "advancedQuantization",
     "advancedGenerationLoss",
+    "advancedMacroBlocking",
   ];
 
   let hasLoadedSource = false;
@@ -1187,6 +1229,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     advancedCctvMonochrome: "CCTV monochrome",
     advancedQuantization: "Quantization/crush",
     advancedGenerationLoss: "Generation loss",
+    advancedMacroBlocking: "Macroblocking",
   };
 
   function setupRangeWithNumber(id) {
