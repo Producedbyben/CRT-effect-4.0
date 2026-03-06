@@ -9,6 +9,15 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function getEvenFrameSize(width, height) {
+  const safeWidth = Math.max(1, Math.floor(width));
+  const safeHeight = Math.max(1, Math.floor(height));
+  return {
+    width: safeWidth % 2 === 0 ? safeWidth : safeWidth + 1,
+    height: safeHeight % 2 === 0 ? safeHeight : safeHeight + 1,
+  };
+}
+
 export async function exportMp4({ canvas, renderer, params, fps, duration, onProgress }) {
   if (!("VideoEncoder" in window)) {
     throw new Error("WebCodecs VideoEncoder is unavailable in this browser/context.");
@@ -17,13 +26,20 @@ export async function exportMp4({ canvas, renderer, params, fps, duration, onPro
   const { Muxer, ArrayBufferTarget } = await import(MP4_MUXER_CDN);
   const width = canvas.width;
   const height = canvas.height;
+  const encodedSize = getEvenFrameSize(width, height);
+  const needsPadding = encodedSize.width !== width || encodedSize.height !== height;
   const totalFrames = Math.max(1, Math.floor(duration * fps));
   const ctx = canvas.getContext("2d");
+
+  const encodeCanvas = needsPadding ? document.createElement("canvas") : canvas;
+  encodeCanvas.width = encodedSize.width;
+  encodeCanvas.height = encodedSize.height;
+  const encodeCtx = needsPadding ? encodeCanvas.getContext("2d", { alpha: false }) : null;
 
   const target = new ArrayBufferTarget();
   const muxer = new Muxer({
     target,
-    video: { codec: "avc", width, height },
+    video: { codec: "avc", width: encodedSize.width, height: encodedSize.height },
     fastStart: "in-memory",
   });
 
@@ -36,8 +52,8 @@ export async function exportMp4({ canvas, renderer, params, fps, duration, onPro
 
   encoder.configure({
     codec: "avc1.42001f",
-    width,
-    height,
+    width: encodedSize.width,
+    height: encodedSize.height,
     framerate: fps,
     bitrate: 5_000_000,
     latencyMode: "quality",
@@ -46,7 +62,12 @@ export async function exportMp4({ canvas, renderer, params, fps, duration, onPro
   for (let frame = 0; frame < totalFrames; frame++) {
     const t = frame / fps;
     renderer.render(ctx, width, height, t, params, frame, fps);
-    const videoFrame = new VideoFrame(canvas, {
+    if (needsPadding && encodeCtx) {
+      encodeCtx.fillStyle = "#000";
+      encodeCtx.fillRect(0, 0, encodeCanvas.width, encodeCanvas.height);
+      encodeCtx.drawImage(canvas, 0, 0);
+    }
+    const videoFrame = new VideoFrame(encodeCanvas, {
       timestamp: Math.round((frame * 1_000_000) / fps),
       duration: Math.round(1_000_000 / fps),
     });
