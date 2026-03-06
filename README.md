@@ -30,12 +30,22 @@ Then open `http://localhost:8080`.
 
 ## Included presets
 
-Alongside the base presets, the renderer now ships with additional looks inspired by common CRT-era display chains:
+The preset list now includes a concrete “lost media” matrix that maps directly to this tool’s effect stack
+(core CRT controls + advanced analog instability controls + pixelation controls).
 
-- **Trinitron RGB Monitor**: low distortion, tight mask, clean broadcast/monitor-style output.
-- **VHS Composite**: stronger bloom/chromatic bleed and noise to emulate consumer composite tape playback.
-- **Portable CRT**: heavier curvature and scanline presence for small-screen portable sets.
-- **Late-Night Broadcast**: balanced glow and noise for over-the-air late-night TV texture.
+- **Late-80s Home VHS**: consumer tape softness, head switching noise, and mild tracking drift.
+- **90s Rental Tape (3rd Gen Dub)**: heavy generation loss, dropouts, and stronger chroma smear.
+- **Hi8 Vacation Cam**: cleaner than VHS with gentle wobble and handheld-era tape character.
+- **MiniDV Family Cam (2002)**: sharper digital-era baseline with interlace and mild artifacting.
+- **Off-Air Analog Broadcast**: over-the-air jitter, cross-color artifacts, and RF-like instability.
+- **Public Access Archive**: noisy mixed signal path with ghosting and interlace shimmer.
+- **Early Web Rip (2006)**: macroblock-like chunkiness and compressed internet-era softness.
+- **Security Camera Dump**: low-detail, high-noise surveillance aesthetic.
+- **Bootleg Concert Cam**: extreme low-light bloom, clipping feel, and unstable tape behavior.
+- **Damaged Archive Recovery**: severe dropout events and restoration-adjacent temporal damage.
+
+These presets are intentionally non-destructive starting points; tweak from each baseline to dial in subtle
+or extreme authenticity per shot.
 
 ## CRT tuning tips
 
