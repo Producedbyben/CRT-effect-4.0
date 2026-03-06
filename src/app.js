@@ -1799,7 +1799,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       const setCollapsed = (collapsed) => {
         panel.dataset.collapsed = collapsed ? "true" : "false";
         panel.classList.toggle("panel-collapsed", collapsed);
-        body.hidden = collapsed;
+        body.setAttribute("aria-hidden", collapsed ? "true" : "false");
         collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
         collapseBtn.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
         collapseBtn.textContent = collapsed ? "▸" : "▾";

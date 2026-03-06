@@ -31,6 +31,7 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
   color: #e8eef8;
 }
 .panel-body { padding: 0.7rem; display: grid; gap: 0.5rem; }
+.panel-body[hidden] { display: none !important; }
 
 .panel-header-toggle {
   display: flex;
@@ -81,6 +82,10 @@ h1 { margin: 0; font-size: 1.07rem; letter-spacing: 0.015em; color: #eef5ff; }
 
 .panel-collapsed {
   border-color: #36404f;
+}
+
+.panel-collapsed > .panel-body {
+  display: none;
 }
 .panel-hint {
   margin: 0;
