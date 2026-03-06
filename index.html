@@ -74,7 +74,7 @@
             <span>CRT effects</span>
             <label class="panel-toggle"><input id="crtEffectsEnabled" type="checkbox" checked /> Enabled</label>
           </header>
-          <div class="panel-body quick-grid">
+          <div class="panel-body quick-grid panel-grid-2">
             <p class="panel-hint">Tip: double-click any slider or tap ↺ to reset. Hold <kbd>Shift</kbd> for fine adjustments and <kbd>Alt</kbd> for coarse steps.</p>
             <label>Scanline strength <span class="range-control"><input id="scanlineStrength" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Phosphor mask <span class="range-control"><input id="phosphorMask" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
@@ -91,7 +91,7 @@
             <span>Digital effects</span>
             <label class="panel-toggle"><input id="digitalEffectsEnabled" type="checkbox" checked /> Enabled</label>
           </header>
-          <div class="panel-body quick-grid">
+          <div class="panel-body quick-grid panel-grid-2">
             <label>Noise <span class="range-control"><input id="noise" type="range" min="0" max="1" step="0.01" value="0.5" /></span></label>
             <label>Frame stutter/drop <span class="range-control"><input id="advancedFrameStutter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <details class="advanced-disclosure panel-span-2">
@@ -112,7 +112,7 @@
             <span>Film effects</span>
             <label class="panel-toggle"><input id="filmEffectsEnabled" type="checkbox" checked /> Enabled</label>
           </header>
-          <div class="panel-body quick-grid">
+          <div class="panel-body quick-grid panel-grid-2">
             <label>Film grain <span class="range-control"><input id="advancedFilmGrain" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <label>Film dust/specks <span class="range-control"><input id="advancedFilmDust" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             <details class="advanced-disclosure panel-span-2">
@@ -220,7 +220,7 @@
         <section class="inspector-tab" data-panel="degrade">
           <section class="panel panel-collapsible" id="artifactsPanel">
             <header class="panel-header">Additional video artifacts</header>
-            <div class="panel-body controls-grid">
+            <div class="panel-body controls-grid panel-grid-2">
               <label>Pixel size <input id="pixelSize" type="number" min="1" max="8" step="1" value="1" /></label>
               <label>Line jitter <span class="range-control"><input id="advancedLineJitter" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
               <label>Timebase wobble <span class="range-control"><input id="advancedTimebaseWobble" type="range" min="0" max="1" step="0.01" value="0" /></span></label>

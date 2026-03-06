@@ -2692,7 +2692,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
-  for (const id of [...controlIds, "previewTime", "presetIntensity"]) {
+  for (const id of [...controlIds, "previewTime", "presetIntensity", "quickPresetIntensity", "quickScanlineStrength", "quickBloom", "quickChroma"]) {
     setupRangeWithNumber(id);
   }
 
