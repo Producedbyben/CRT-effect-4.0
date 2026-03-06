@@ -547,6 +547,11 @@ const FALLBACK_PRESETS = {
     advancedExposurePump: 0.26,
     advancedQuantization: 0.52,
     advancedCctvMonochrome: 0.85,
+    advancedFilmGrain: 0.72,
+    advancedFilmDust: 0.46,
+    advancedFilmScratches: 0.58,
+    advancedFilmGateWeave: 0.54,
+    advancedFilmHalation: 0.28,
     maskType: "none",
   },
   "Technicolor Print 1950s": {
@@ -561,6 +566,11 @@ const FALLBACK_PRESETS = {
     advancedGhosting: 0.08,
     advancedExposurePump: 0.12,
     advancedWhiteBalanceDrift: 0.1,
+    advancedFilmGrain: 0.44,
+    advancedFilmDust: 0.18,
+    advancedFilmScratches: 0.12,
+    advancedFilmGateWeave: 0.24,
+    advancedFilmHalation: 0.62,
     maskType: "dot",
   },
   "Super 8 Home Reel 1970s": {
@@ -577,7 +587,12 @@ const FALLBACK_PRESETS = {
     advancedWhiteBalanceDrift: 0.24,
     advancedFocusBreathing: 0.28,
     advancedQuantization: 0.24,
-    maskType: "none",
+    advancedFilmGrain: 0.76,
+    advancedFilmDust: 0.38,
+    advancedFilmScratches: 0.28,
+    advancedFilmGateWeave: 0.46,
+    advancedFilmHalation: 0.4,
+    maskType: "filmSuper8",
   },
   "16mm Broadcast Kinescope": {
     scanlineStrength: 0.22,
@@ -593,131 +608,12 @@ const FALLBACK_PRESETS = {
     advancedGhosting: 0.12,
     advancedInterlacing: 0.2,
     advancedDropouts: 0.08,
-    maskType: "slot",
-  },
-  "Retro Pixel LCD": {
-    scanlineStrength: 0.08,
-    phosphorMask: 0.04,
-    barrelDistortion: 0,
-    bloom: 0.08,
-    flicker: 0.02,
-    chromaticAberration: 0.03,
-    noise: 0.04,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "Cyberpunk OLED": {
-    scanlineStrength: 0.14,
-    phosphorMask: 0.12,
-    barrelDistortion: -0.012,
-    bloom: 0.68,
-    flicker: 0.03,
-    chromaticAberration: 0.06,
-    noise: 0.05,
-    pixelSize: 1,
-    maskScale: 1,
-    advancedLineJitter: 0,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0,
-    advancedCrossColor: 0,
-    advancedDropouts: 0,
-    advancedGhosting: 0.04,
-    advancedInterlacing: 0,
-    advancedFrameStutter: 0,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0,
-    advancedWhiteBalanceDrift: 0,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0,
-    advancedGenerationLoss: 0,
-    advancedMacroBlocking: 0,
-  },
-  "Streaming Compression": {
-    scanlineStrength: 0.18,
-    phosphorMask: 0.1,
-    barrelDistortion: 0,
-    bloom: 0.2,
-    flicker: 0.03,
-    chromaticAberration: 0.07,
-    noise: 0.12,
-    pixelSize: 2,
-    maskScale: 1.1,
-    advancedLineJitter: 0.01,
-    advancedTimebaseWobble: 0,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.02,
-    advancedCrossColor: 0,
-    advancedDropouts: 0.08,
-    advancedGhosting: 0.06,
-    advancedInterlacing: 0.04,
-    advancedFrameStutter: 0.12,
-    advancedRfInterference: 0,
-    advancedExposurePump: 0.04,
-    advancedWhiteBalanceDrift: 0.03,
-    advancedFocusBreathing: 0,
-    advancedTapeCrease: 0,
-    advancedTimestampOSD: 0,
-    advancedOSDStyle: 0,
-    advancedCctvMonochrome: 0,
-    advancedQuantization: 0.3,
-    advancedGenerationLoss: 0.12,
-    advancedMacroBlocking: 0.32,
-  },
-  "Digital Surveillance": {
-    scanlineStrength: 0.22,
-    phosphorMask: 0.16,
-    barrelDistortion: 0,
-    bloom: 0.12,
-    flicker: 0.02,
-    chromaticAberration: 0.04,
-    noise: 0.18,
-    pixelSize: 3,
-    maskScale: 1.2,
-    advancedLineJitter: 0.02,
-    advancedTimebaseWobble: 0.02,
-    advancedHeadSwitching: 0,
-    advancedChromaDelay: 0.03,
-    advancedCrossColor: 0,
-    advancedDropouts: 0.12,
-    advancedGhosting: 0.03,
-    advancedInterlacing: 0.12,
-    advancedFrameStutter: 0.26,
-    advancedRfInterference: 0.08,
-    advancedExposurePump: 0.06,
-    advancedWhiteBalanceDrift: 0.04,
-    advancedFocusBreathing: 0.04,
-    advancedTapeCrease: 0.06,
-    advancedTimestampOSD: 0.42,
-    advancedOSDStyle: 3,
-    advancedCctvMonochrome: 0.36,
-    advancedQuantization: 0.24,
-    advancedGenerationLoss: 0.08,
-    advancedMacroBlocking: 0.18,
+    advancedFilmGrain: 0.48,
+    advancedFilmDust: 0.22,
+    advancedFilmScratches: 0.24,
+    advancedFilmGateWeave: 0.32,
+    advancedFilmHalation: 0.24,
+    maskType: "film16mm",
   },
 };
 
@@ -864,6 +760,11 @@ class CRTRenderer {
     const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
     const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
     const macroBlocking = Math.max(0, Math.min(1, Number(params.advancedMacroBlocking) || 0));
+    const filmGrain = Math.max(0, Math.min(1, Number(params.advancedFilmGrain) || 0));
+    const filmDust = Math.max(0, Math.min(1, Number(params.advancedFilmDust) || 0));
+    const filmScratches = Math.max(0, Math.min(1, Number(params.advancedFilmScratches) || 0));
+    const filmGateWeave = Math.max(0, Math.min(1, Number(params.advancedFilmGateWeave) || 0));
+    const filmHalation = Math.max(0, Math.min(1, Number(params.advancedFilmHalation) || 0));
 
     const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
     const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
@@ -888,8 +789,10 @@ class CRTRenderer {
         const creaseDistance = Math.abs(y / Math.max(1, height - 1) - creaseCenter);
         const creaseWarp = tapeCrease > 0 ? Math.max(0, 1 - creaseDistance / 0.045) * tapeCrease * (0.015 + seededNoise(temporalFrame, y, 41) * 0.02) : 0;
 
-        const srcNx = (nx / warp) * barrelOverscan + wobble + perLineJitter + baseHeadSwitching + creaseWarp;
-        const srcNy = (ny / warp) * barrelOverscan;
+        const weaveX = filmGateWeave * Math.sin(temporalSeconds * 1.7 + y * 0.013) * 0.01;
+        const weaveY = filmGateWeave * Math.cos(temporalSeconds * 1.9 + x * 0.009) * 0.008;
+        const srcNx = (nx / warp) * barrelOverscan + wobble + perLineJitter + baseHeadSwitching + creaseWarp + weaveX;
+        const srcNy = (ny / warp) * barrelOverscan + weaveY;
         const u = Math.max(0, Math.min(1, srcNx * 0.5 + 0.5));
         const v = Math.max(0, Math.min(1, srcNy * 0.5 + 0.5));
 
@@ -970,13 +873,58 @@ class CRTRenderer {
           rMask = dotGain;
           gMask = dotGain;
           bMask = dotGain;
+        } else if (maskType === "filmSuper8") {
+          const edgeX = Math.min(x / Math.max(1, width), (width - x) / Math.max(1, width));
+          const edgeY = Math.min(y / Math.max(1, height), (height - y) / Math.max(1, height));
+          const edgeVignette = Math.min(edgeX, edgeY);
+          const perforationBand = x < width * 0.04 || x > width * 0.96;
+          const perfPulse = 0.86 + 0.14 * Math.sin((y / Math.max(1, height)) * Math.PI * 12 + temporalSeconds * 4);
+          const super8Gain = 1 - mask * (0.22 * (1 - edgeVignette));
+          rMask = super8Gain * (perforationBand ? perfPulse : 1);
+          gMask = super8Gain * (perforationBand ? perfPulse : 1);
+          bMask = super8Gain * (perforationBand ? perfPulse : 1);
+        } else if (maskType === "film16mm") {
+          const gateEdge = Math.min(x / Math.max(1, width), (width - x) / Math.max(1, width), y / Math.max(1, height), (height - y) / Math.max(1, height));
+          const gateDarken = 1 - mask * (0.16 * (1 - gateEdge));
+          const weaveTexture = 1 + mask * 0.08 * (seededNoise(x * 0.03, y * 0.03, temporalFrame) - 0.5);
+          rMask = gateDarken * weaveTexture;
+          gMask = gateDarken * weaveTexture;
+          bMask = gateDarken * weaveTexture;
         }
 
         const dither = (BAYER_4X4[maskY & 3][maskX & 3] / 15 - 0.5) * (1.4 + params.noise * 2.2);
 
-        const redSoft = red * (1 - blend) + (redHoriz * 0.62 + redVert * 0.38) * blend;
-        const greenSoft = green * (1 - blend) + (greenHoriz * 0.62 + greenVert * 0.38) * blend;
-        const blueSoft = blue * (1 - blend) + (blueHoriz * 0.62 + blueVert * 0.38) * blend;
+        let redSoft = red * (1 - blend) + (redHoriz * 0.62 + redVert * 0.38) * blend;
+        let greenSoft = green * (1 - blend) + (greenHoriz * 0.62 + greenVert * 0.38) * blend;
+        let blueSoft = blue * (1 - blend) + (blueHoriz * 0.62 + blueVert * 0.38) * blend;
+
+        if (filmHalation > 0) {
+          const haloMix = Math.min(0.45, filmHalation * (0.12 + luminance * 0.5));
+          redSoft = redSoft * (1 - haloMix) + redHoriz * haloMix;
+          greenSoft = greenSoft * (1 - haloMix) + greenHoriz * haloMix;
+          blueSoft = blueSoft * (1 - haloMix) + blueHoriz * haloMix;
+        }
+
+        const grain = (seededNoise(x * 1.91, y * 1.37, temporalFrame * 1.3) - 0.5) * 255 * (0.06 + filmGrain * 0.34);
+        redSoft += grain;
+        greenSoft += grain * 0.92;
+        blueSoft += grain * 0.78;
+
+        const dustHit = seededNoise(x * 0.19 + temporalFrame * 0.03, y * 0.23, 83);
+        if (filmDust > 0 && dustHit > 0.995 - filmDust * 0.03) {
+          const dustShade = 1 - filmDust * (0.3 + seededNoise(x, y, temporalFrame) * 0.5);
+          redSoft *= dustShade;
+          greenSoft *= dustShade;
+          blueSoft *= dustShade;
+        }
+
+        const scratchSeed = seededNoise(Math.floor(x * 0.07), temporalFrame * 0.11, 97);
+        if (filmScratches > 0 && scratchSeed > 0.982 - filmScratches * 0.045) {
+          const scratchBright = 1 + filmScratches * 0.6;
+          redSoft *= scratchBright;
+          greenSoft *= scratchBright;
+          blueSoft *= scratchBright;
+        }
 
         const dropoutNoise = seededNoise(x * 0.5, y + temporalFrame * 0.27, 31);
         const dropoutGate = dropoutNoise > 0.988 - dropouts * 0.08 ? 1 - dropouts * (0.35 + seededNoise(y, temporalFrame, 59) * 0.5) : 1;
@@ -1603,6 +1551,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedQuantization",
     "advancedGenerationLoss",
     "advancedMacroBlocking",
+    "advancedFilmGrain",
+    "advancedFilmDust",
+    "advancedFilmScratches",
+    "advancedFilmGateWeave",
+    "advancedFilmHalation",
   ];
 
   let hasLoadedSource = false;
@@ -1651,6 +1604,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     advancedQuantization: "Quantization/crush",
     advancedGenerationLoss: "Generation loss",
     advancedMacroBlocking: "Macroblocking",
+    advancedFilmGrain: "Film grain",
+    advancedFilmDust: "Film dust/specks",
+    advancedFilmScratches: "Film scratches",
+    advancedFilmGateWeave: "Gate weave",
+    advancedFilmHalation: "Halation glow",
   };
 
   function setupRangeWithNumber(id) {
