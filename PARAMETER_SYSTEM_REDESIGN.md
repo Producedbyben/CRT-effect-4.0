@@ -1,245 +1,203 @@
-# CRT Effect Renderer — Hierarchical Parameter System Redesign
+# Lost Media Emulator — Hierarchical Parameter System Redesign
 
-## 1) Proposed Macro Control Systems (Level 1)
+This proposal reframes the product from a pure CRT simulator into a **Lost Media Emulator**: a creative pipeline for reconstructing archived, damaged, transcoded, and rebroadcast footage while still preserving a strong CRT endpoint.
 
-These are the **always-visible** controls intended for rapid exploration. Each macro is a weighted controller that drives multiple lower-level parameters in coordinated ways.
+## 1. Proposed macro control systems (Level 1)
 
-### A. CRT Character
-- **Purpose:** Defines the baseline feel of the display itself.
-- **Primary macro:** `CRT Character` (0–100)
+These macros are always visible and intended to get users to a compelling look quickly.
+
+### 1) Source Provenance
+**What it controls:** where the footage feels like it came from.
+
+- **Macro:** `Source Provenance` (Pristine master → nth-generation copy)
 - **Shaping controls:**
-  - `Era` (Arcade / Consumer TV / Studio Monitor)
-  - `Display Size` (Small tube → Large tube)
-- **Internally drives:** scanline profile, phosphor behavior, mask strength, bloom response, edge softness.
+  - `Origin Type` (Broadcast / Consumer camcorder / Screen capture / Archive transfer)
+  - `Generation Depth` (1st copy → many dubs)
+- **Drives:** base noise floor, dynamic range collapse, edge softness, color fidelity loss.
 
-### B. Signal Quality
-- **Purpose:** Controls how clean or degraded the source signal appears.
-- **Primary macro:** `Signal Quality` (Clean ↔ Damaged)
-- **Shaping controls:**
-  - `Noise Type` (RF / Luma-Chroma / Snow)
-  - `Dropout Bias` (Horizontal / Random)
-- **Internally drives:** noise amount, line jitter, color bleed, sync instability, ghosting.
+### 2) Display Emulation
+**What it controls:** display endpoint character (CRT-first, but not only one flavor of CRT).
 
-### C. Analog Motion
-- **Purpose:** Controls temporal/instability character associated with tape and camera systems.
-- **Primary macro:** `Analog Motion` (Stable ↔ Unstable)
+- **Macro:** `Display Emulation`
 - **Shaping controls:**
-  - `Movement Style` (Tripod / Handheld / Worn Tape)
-  - `Temporal Persistence` (Short / Smear)
-- **Internally drives:** frame weave, vertical bounce, motion smear, temporal noise variation.
+  - `Display Family` (Consumer CRT / PVM/BVM / Arcade / Early LCD viewed through camera)
+  - `Tube Age` (Fresh → worn phosphor)
+- **Drives:** scanline behavior, mask structure, bloom, curvature, convergence drift.
 
-### D. Broadcast Artifacts
-- **Purpose:** Simulates transmission-era defects.
-- **Primary macro:** `Broadcast Artifacts` (Off → Heavy)
-- **Shaping controls:**
-  - `Interference Flavor` (Multipath / RF noise / Tracking)
-  - `Event Frequency` (Rare / Frequent)
-- **Internally drives:** tearing, horizontal hold errors, field issues, intermittent glitches.
+### 3) Signal Path Damage
+**What it controls:** analog chain degradation between source and display.
 
-### E. Compression / Digital Damage
-- **Purpose:** Adds digital-era corruption layered onto analog output.
-- **Primary macro:** `Compression Damage` (Off → Harsh)
+- **Macro:** `Signal Path Damage`
 - **Shaping controls:**
-  - `Codec Character` (Soft blockiness / Ringing / Mosquito)
-  - `Bitrate Pressure` (Mild / Severe)
-- **Internally drives:** macroblocking, chroma quantization, edge ringing, banding.
+  - `Path Type` (Composite / RF / S-Video-ish / Mixed chain)
+  - `Instability` (Stable → unstable)
+- **Drives:** chroma bleed, Y/C crosstalk, jitter, ghosting, sync errors.
 
-### F. Cinematic Finish
-- **Purpose:** Final stylization pass for mood and polish.
-- **Primary macro:** `Finish` (Neutral → Stylized)
+### 4) Distribution Artifacts
+**What it controls:** delivery defects from broadcast and transfer pipelines.
+
+- **Macro:** `Distribution Artifacts`
 - **Shaping controls:**
-  - `Film Presence` (None / Subtle / Heavy)
-  - `OSD Presence` (Off / Utility / Broadcast)
-- **Internally drives:** grain, halation, vignette, color cast, OSD opacity and wear.
+  - `Carrier` (OTA broadcast / Cable / Tape transfer / Optical rip)
+  - `Event Rate` (Rare → frequent)
+- **Drives:** dropouts, tracking errors, tearing, multipath interference, field mismatches.
+
+### 5) Digital Decay
+**What it controls:** modern transcode and upload damage layered onto older media.
+
+- **Macro:** `Digital Decay`
+- **Shaping controls:**
+  - `Codec Flavor` (Blocky / Ringy / Smearing)
+  - `Bitrate Stress` (Light → extreme)
+- **Drives:** macroblocking, mosquito noise, banding, ringing, chroma quantization.
+
+### 6) Recovery vs Ruin
+**What it controls:** restoration intent versus archival collapse.
+
+- **Macro:** `Recovery ↔ Ruin`
+- **Shaping controls:**
+  - `Restoration Bias` (Preserve defects / gentle cleanup / heavy cleanup)
+  - `Texture Keep` (Keep grain/noise details)
+- **Drives:** denoise interplay, sharpen/soften blend, artifact masking/unmasking.
+
+### 7) Era Styling & OSD
+**What it controls:** period cues and contextual overlays.
+
+- **Macro:** `Era Styling`
+- **Shaping controls:**
+  - `Era` (80s / 90s / 00s / mixed)
+  - `Overlay Context` (Camcorder HUD / Broadcast bug / Security cam stamp)
+- **Drives:** film grain style, tint drift, timestamp/OSD wear, vignette and halation profile.
 
 ---
 
-## 2) Parameter Clusters for Each System (Level 2)
+## 2. Parameter clusters for each system (Level 2)
 
-Each macro opens into 2–4 **effect clusters** with concise, meaningful controls.
+Each macro expands into compact clusters with 2–3 controls each.
 
-## A. CRT Character
-1. **Phosphor & Mask**
-   - Strength
-   - Dot/slot style
-   - Subpixel visibility
-2. **Scan Structure**
-   - Scanline depth
-   - Line sharpness
-   - Beam width
-3. **Tube Optics**
-   - Bloom
-   - Edge softness
-   - Curvature coupling
+## 1) Source Provenance
+- **Capture Quality** (clarity loss, dynamic compression)
+- **Generation Wear** (copy noise, edge erosion)
+- **Color Survivability** (saturation collapse, channel imbalance)
 
-## B. Signal Quality
-1. **Noise Floor**
-   - Global noise amount
-   - Color noise balance
-2. **Color Integrity**
-   - Bleed
-   - Chroma delay
-   - Chroma/luma separation error
-3. **Sync Stability**
-   - Horizontal jitter
-   - Vertical jitter
-   - Micro-warp
+## 2) Display Emulation
+- **Phosphor & Mask** (mask strength, triad visibility)
+- **Scan Behavior** (scanline depth, beam width)
+- **Tube Optics** (bloom, curvature, corner falloff)
 
-## C. Analog Motion
-1. **Camera Instability**
-   - Frame weave
-   - Drift
-2. **Tape Transport**
-   - Tracking wander
-   - Timebase wobble
-3. **Temporal Echo**
-   - Motion smear
-   - Field persistence
+## 3) Signal Path Damage
+- **Luma/Chroma Separation** (bleed, delay)
+- **Sync Integrity** (horizontal/vertical jitter)
+- **Line Stability** (micro-warp, wobble)
 
-## D. Broadcast Artifacts
-1. **Transmission Interference**
-   - RF streaks
-   - Multipath ghosts
-2. **Field/Frame Errors**
-   - Interlace mismatch
-   - Tearing probability
-3. **Dropout Events**
-   - Line loss amount
-   - Event duration
+## 4) Distribution Artifacts
+- **Transmission Interference** (RF streaks, multipath ghosts)
+- **Temporal Faults** (field mismatch, tearing)
+- **Dropout Events** (line loss amount, duration)
 
-## E. Compression / Digital Damage
-1. **Macroblocking**
-   - Block size tendency
-   - Block contrast
-2. **Quantization Artifacts**
-   - Banding
-   - Chroma crush
-3. **Edge Failures**
-   - Ringing
-   - Mosquito noise
+## 5) Digital Decay
+- **Block Errors** (macroblock size/visibility)
+- **Quantization Damage** (banding, chroma crush)
+- **Edge Corruption** (ringing, mosquito noise)
 
-## F. Cinematic Finish
-1. **Film Texture**
-   - Grain amount
-   - Grain size
-2. **Optical Finish**
-   - Halation
-   - Vignette
-3. **Overlay System (OSD)**
-   - OSD opacity
-   - OSD aging/wear
-   - OSD flicker
+## 6) Recovery vs Ruin
+- **Detail Policy** (texture retention, sharpen bias)
+- **Noise Policy** (denoise amount, temporal smoothing)
+- **Artifact Policy** (keep/remove chain defects)
+
+## 7) Era Styling & OSD
+- **Film/Optical Finish** (grain, halation, vignette)
+- **Color Mood Drift** (era tint, white-point shift)
+- **Overlay Storytelling** (OSD opacity, flicker, wear)
 
 ---
 
-## 3) Advanced Parameters Within Each Cluster (Level 3)
+## 3. Advanced parameters within each cluster (Level 3)
 
-These remain fully available, but hidden by default behind an **Advanced** expander per cluster.
+Advanced controls are fully preserved; they are simply hidden behind an `Advanced` disclosure inside each cluster.
 
-### Examples of Level 3 controls
+- **Generation Wear:** per-generation gain curve, nonlinear copy accumulation.
 - **Phosphor & Mask:** mask phase offset, subpixel anisotropy, triad irregularity.
-- **Scan Structure:** per-line modulation curve, odd/even line asymmetry, beam falloff exponent.
-- **Noise Floor:** luma/chroma spectral slope, temporal seed mode, per-channel bias.
-- **Color Integrity:** Y/C crosstalk matrix coefficients, delay in subpixel units.
-- **Sync Stability:** jitter waveform shape, frequency band limits, burst timing randomness.
-- **Tape Transport:** wow/flutter split, capstan pulse simulation, head-switching timing.
-- **Dropout Events:** dropout envelope attack/release, cluster spacing randomness.
-- **Macroblocking:** adaptive block map threshold, intra/inter error ratio.
-- **Quantization:** chroma subsampling model, dither strategy.
-- **OSD:** glyph bleed, scanline coupling, alpha noise texture.
+- **Scan Behavior:** odd/even field asymmetry, beam falloff exponent, line modulation curve.
+- **Luma/Chroma Separation:** full Y/C matrix coefficients, subpixel delay granularity.
+- **Sync Integrity:** jitter waveform source, jitter frequency range, burst randomness.
+- **Dropout Events:** attack/release envelope, cluster spacing randomness, edge feather.
+- **Block Errors:** adaptive threshold map, I/P-frame corruption split.
+- **Noise Policy:** temporal denoise radius, luma/chroma independent thresholds.
+- **Overlay Storytelling:** glyph bleed, alpha noise texture, scanline-coupled opacity.
 
-### Advanced UX behavior
-- `Advanced` state persists per user.
-- Expert users can enable **"Always show advanced"** globally.
-- Any touched advanced parameter displays a "customized" dot on its parent cluster.
+**Power-user safeguards**
+- `Detach from macro` per parameter.
+- `Pin value` to prevent preset overwrite.
+- `Show all advanced` global preference for experts.
 
 ---
 
-## 4) UI Layering: Reveal/Hide Strategy Without Changing Layout
+## 4. How the UI could reveal/hide these layers
 
-This redesign keeps the existing page structure but changes parameter exposure.
+No layout overhaul required—this is a control strategy change.
 
-1. **Default view (Beginner)**
-   - Show only Level 1 macros + 1–2 shaping controls each.
-   - Hide all raw parameters.
-   - Provide concise helper text: "Controls signal breakup, color bleed, and sync drift together."
+1. **Beginner (default)**
+   - Show only Level 1 macros + one shaping control each.
+   - System cards include one-sentence intent text.
+   - Optional quick presets row: `Found Tape`, `Late-night Broadcast`, `Overcompressed Reupload`.
 
-2. **Cluster view (Intermediate)**
-   - Clicking a macro expands Level 2 clusters inline.
-   - Each cluster shows 2–3 curated controls max.
-   - "Auto" toggle allows macro to continue driving untouched cluster controls.
+2. **Intermediate (cluster mode)**
+   - Expanding a macro reveals Level 2 clusters inline.
+   - Each cluster surfaces 2–3 high-value controls only.
+   - `Auto` indicator shows cluster values still being macro-driven.
 
-3. **Advanced view (Expert)**
-   - Per-cluster `Advanced` disclosure reveals full individual parameters.
-   - Macro influence becomes additive/scaled unless `Detach` is selected.
-   - `Detach parameter` allows locking any parameter from macro automation.
+3. **Advanced (parameter mode)**
+   - `Advanced` expander per cluster reveals all raw parameters.
+   - Macro contributions become additive unless parameter is detached.
+   - Edited advanced values show a customization dot on parent cluster + macro.
 
-4. **Dependency clarity**
-   - When macro moves a parameter, show subtle linked icon.
-   - Hover reveals mapping: e.g., "Signal Quality contributes +35% to Chroma Bleed".
+4. **Explainability & confidence**
+   - Hovering a parameter shows what macro(s) affect it and by how much.
+   - Add `Why this changed` tooltip after preset load.
 
-5. **Safe experimentation controls**
-   - `A/B Snapshot` at macro-system level.
-   - `Randomize within range` per macro (musical "macro variation" style).
-   - `Reset cluster` and `Reset only advanced` actions.
-
----
-
-## 5) Preset Behavior with the New Hierarchy
-
-Presets should be layered rather than monolithic.
-
-1. **Preset structure**
-   - **Base preset:** sets Level 1 macro ranges and cluster defaults.
-   - **Style modifier:** optional overlay (e.g., "Worn VHS", "Broadcast Sports", "Late-night Anime Capture").
-   - **Advanced deltas:** only stores changed Level 3 parameters.
-
-2. **Preset loading modes**
-   - `Replace All`
-   - `Apply Macro Only`
-   - `Apply Artifact Families` (selected systems only)
-
-3. **Preset transparency**
-   - Show a "What this preset changes" diff grouped by system.
-   - Mark overridden advanced values explicitly.
-
-4. **Preset authoring flow**
-   - Creators can publish with only macro + cluster values for portability.
-   - Optional "include expert tweaks" checkbox appends Level 3 deltas.
+5. **Low-risk experimentation tools**
+   - `A/B` compare at macro-system granularity.
+   - `Randomize subtle / medium / wild` per macro.
+   - `Reset cluster`, `Reset advanced only`, `Reset all detached links`.
 
 ---
 
-## 6) Faster Experimentation Workflows
+## 5. Example workflows using the improved system
 
-### Workflow A — Beginner: "Get a convincing CRT look in 30 seconds"
-1. Pick preset: `Consumer TV 90s`.
-2. Increase `CRT Character` to 65.
-3. Raise `Signal Quality` damage slightly.
-4. Add `Finish` for grain/OSD taste.
-5. Done — no deep panel usage required.
+### Workflow A — Fast concepting (beginner)
+1. Choose preset `Recovered TV Broadcast`.
+2. Push `Source Provenance` toward deeper generation loss.
+3. Raise `Display Emulation` until CRT character feels right.
+4. Add a little `Digital Decay` for reupload realism.
+5. Export iteration.
 
-### Workflow B — Intermediate: "Build a damaged broadcast capture"
+### Workflow B — Directed art pass (intermediate)
 1. Start from neutral preset.
-2. Set `Broadcast Artifacts` to medium.
-3. Open clusters:
-   - Increase transmission interference.
-   - Add brief dropout events.
-4. Tune `Signal Quality` color integrity for bleed.
-5. Save as custom style preset.
+2. Increase `Distribution Artifacts` for occasional transmission faults.
+3. In clusters, tune dropout duration + sync jitter balance.
+4. Add subtle `Era Styling` OSD to imply provenance.
+5. Save as project style preset.
 
-### Workflow C — Advanced: "Recreate a specific deck/capture chain"
-1. Dial macros to approximate global character.
-2. Open Level 3 in Tape Transport and Color Integrity.
-3. Detach key parameters (e.g., head-switch timing, Y/C delay).
-4. Perform shot-matching with A/B snapshots.
-5. Export preset with advanced deltas included.
+### Workflow C — Forensic recreation (advanced)
+1. Dial top-level macros for broad match.
+2. Open advanced in `Luma/Chroma Separation`, `Sync Integrity`, and `Block Errors`.
+3. Detach key parameters to emulate specific deck/capture quirks.
+4. A/B against reference stills and lock final parameter pins.
+5. Export preset with macro base + advanced deltas.
 
 ---
 
-## Practical Implementation Notes
+## Preset behavior in the new hierarchy
 
-- Maintain backward compatibility by mapping existing raw parameters into the new hierarchy via a **parameter graph**.
-- Macro value should be a normalized scalar feeding weighted parameter curves (linear/log/S-curve per target).
-- Use non-destructive composition:
-  - `Final parameter = base preset + macro contribution + manual offset`
-- This ensures advanced control is never lost while dramatically reducing default UI complexity.
+- **Base preset:** writes Level 1 + Level 2 defaults.
+- **Modifier preset:** applies selected systems only (e.g., only `Digital Decay` + `Era Styling`).
+- **Expert delta:** stores only modified advanced params.
+
+**Load modes**
+- `Replace everything`
+- `Apply macro skeleton only`
+- `Apply selected systems`
+- `Respect pinned/ detached advanced values`
+
+This keeps presets flexible for creative exploration without wiping expert refinements.
