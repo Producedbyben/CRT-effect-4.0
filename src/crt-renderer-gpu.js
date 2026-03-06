@@ -62,7 +62,7 @@ void main() {
   vec2 uv = v_uv;
   vec2 n = uv * 2.0 - 1.0;
   float r2 = dot(n, n);
-  float barrel = clamp(u_barrel, -0.8, 0.8);
+  float barrel = clamp(u_barrel, -0.3, 0.3);
   float warp = max(0.35, 1.0 + barrel * (0.22 + 0.78 * r2));
   float cornerWarp = max(0.35, 1.0 + barrel * (0.22 + 0.78 * 2.0));
   float overscan = (barrel < 0.0) ? cornerWarp : 1.0;
