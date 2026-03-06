@@ -279,13 +279,13 @@ const FALLBACK_PRESETS = {
     advancedMacroBlocking: 0,
   },
   "Early Web Rip (2006)": {
-    scanlineStrength: 0.06,
-    phosphorMask: 0.04,
+    scanlineStrength: 0,
+    phosphorMask: 0,
     barrelDistortion: 0,
-    bloom: 0.08,
-    flicker: 0.01,
-    chromaticAberration: 0.04,
-    noise: 0.08,
+    bloom: 0.04,
+    flicker: 0,
+    chromaticAberration: 0.02,
+    noise: 0.06,
     pixelSize: 4,
     maskScale: 1.3,
     advancedLineJitter: 0,
@@ -294,9 +294,9 @@ const FALLBACK_PRESETS = {
     advancedChromaDelay: 0,
     advancedCrossColor: 0,
     advancedDropouts: 0,
-    advancedGhosting: 0.02,
+    advancedGhosting: 0,
     advancedInterlacing: 0,
-    advancedFrameStutter: 0.31,
+    advancedFrameStutter: 0.24,
     advancedRfInterference: 0,
     advancedExposurePump: 0,
     advancedWhiteBalanceDrift: 0,
@@ -305,18 +305,18 @@ const FALLBACK_PRESETS = {
     advancedTimestampOSD: 0.31,
     advancedOSDStyle: 1,
     advancedCctvMonochrome: 0,
-    advancedQuantization: 0.74,
-    advancedGenerationLoss: 0.43,
-    advancedMacroBlocking: 0.68,
+    advancedQuantization: 0.46,
+    advancedGenerationLoss: 0.18,
+    advancedMacroBlocking: 0.34,
   },
   "Security Camera Dump": {
     scanlineStrength: 0,
     phosphorMask: 0,
     barrelDistortion: 0,
-    bloom: 0.03,
-    flicker: 0.01,
-    chromaticAberration: 0.03,
-    noise: 0.24,
+    bloom: 0.02,
+    flicker: 0,
+    chromaticAberration: 0.02,
+    noise: 0.2,
     pixelSize: 5,
     maskScale: 1.5,
     advancedLineJitter: 0,
@@ -324,9 +324,9 @@ const FALLBACK_PRESETS = {
     advancedHeadSwitching: 0,
     advancedChromaDelay: 0,
     advancedCrossColor: 0,
-    advancedDropouts: 0.05,
-    advancedGhosting: 0.06,
-    advancedInterlacing: 0.02,
+    advancedDropouts: 0.02,
+    advancedGhosting: 0.03,
+    advancedInterlacing: 0,
     advancedFrameStutter: 0.52,
     advancedRfInterference: 0.19,
     advancedExposurePump: 0.12,
@@ -335,10 +335,10 @@ const FALLBACK_PRESETS = {
     advancedTapeCrease: 0.18,
     advancedTimestampOSD: 0.76,
     advancedOSDStyle: 3,
-    advancedCctvMonochrome: 0.86,
-    advancedQuantization: 0.66,
-    advancedGenerationLoss: 0.38,
-    advancedMacroBlocking: 0.52,
+    advancedCctvMonochrome: 0.72,
+    advancedQuantization: 0.42,
+    advancedGenerationLoss: 0.2,
+    advancedMacroBlocking: 0.3,
   },
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
@@ -423,6 +423,8 @@ class CRTRenderer {
     this.sourceCanvas = document.createElement("canvas");
     this.fitCanvas = document.createElement("canvas");
     this.workCanvas = document.createElement("canvas");
+    this.tempCanvas = document.createElement("canvas");
+    this.quantCanvas = document.createElement("canvas");
     this.hasImage = false;
   }
 
@@ -803,13 +805,15 @@ class CRTRenderer {
       }
     }
 
-    if (macroBlocking > 0) {
-      const blockSize = Math.max(3, Math.round(3 + macroBlocking * 18));
+    if (macroBlocking > 0.01) {
+      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
+      const effectiveMacro = macroBlocking * (0.45 + perfBudget * 0.55);
+      const blockSize = Math.max(4, Math.round(4 + effectiveMacro * 16));
       const lowW = Math.max(1, Math.floor(width / blockSize));
       const lowH = Math.max(1, Math.floor(height / blockSize));
 
-      this.tempCanvas.width = lowW;
-      this.tempCanvas.height = lowH;
+      if (this.tempCanvas.width !== lowW) this.tempCanvas.width = lowW;
+      if (this.tempCanvas.height !== lowH) this.tempCanvas.height = lowH;
       const tctx = this.tempCanvas.getContext("2d");
       tctx.clearRect(0, 0, lowW, lowH);
       tctx.imageSmoothingEnabled = true;
@@ -818,21 +822,35 @@ class CRTRenderer {
 
       outCtx.save();
       outCtx.imageSmoothingEnabled = false;
-      outCtx.globalAlpha = Math.min(0.88, 0.2 + macroBlocking * 0.55);
+      outCtx.globalAlpha = Math.min(0.8, 0.14 + effectiveMacro * 0.52);
       outCtx.drawImage(this.tempCanvas, 0, 0, lowW, lowH, 0, 0, width, height);
       outCtx.restore();
 
-      outCtx.save();
-      outCtx.globalAlpha = Math.min(0.18, macroBlocking * 0.15);
-      outCtx.fillStyle = "rgb(0 0 0)";
-      for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
-      for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
-      outCtx.restore();
+      if (effectiveMacro > 0.28) {
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.14, effectiveMacro * 0.12);
+        outCtx.fillStyle = "rgb(0 0 0)";
+        for (let gx = blockSize; gx < width; gx += blockSize) outCtx.fillRect(gx, 0, 1, height);
+        for (let gy = blockSize; gy < height; gy += blockSize) outCtx.fillRect(0, gy, width, 1);
+        outCtx.restore();
+      }
     }
 
-    if (quantization > 0) {
-      const levels = Math.max(4, Math.round(64 - quantization * 56));
-      const imageData = outCtx.getImageData(0, 0, width, height);
+    if (quantization > 0.01) {
+      const perfBudget = Math.min(1, 921600 / Math.max(1, width * height));
+      const sampleScale = Math.max(1, Math.round(1 + quantization * (2 + (1 - perfBudget) * 4)));
+      const qW = Math.max(1, Math.floor(width / sampleScale));
+      const qH = Math.max(1, Math.floor(height / sampleScale));
+      if (this.quantCanvas.width !== qW) this.quantCanvas.width = qW;
+      if (this.quantCanvas.height !== qH) this.quantCanvas.height = qH;
+      const qctx = this.quantCanvas.getContext("2d", { willReadFrequently: true });
+      qctx.clearRect(0, 0, qW, qH);
+      qctx.imageSmoothingEnabled = true;
+      qctx.imageSmoothingQuality = "low";
+      qctx.drawImage(outCtx.canvas, 0, 0, qW, qH);
+
+      const levels = Math.max(6, Math.round(72 - quantization * 60));
+      const imageData = qctx.getImageData(0, 0, qW, qH);
       const data = imageData.data;
       const inv = 255 / (levels - 1);
       for (let i = 0; i < data.length; i += 4) {
@@ -840,7 +858,13 @@ class CRTRenderer {
         data[i + 1] = Math.round((data[i + 1] / 255) * (levels - 1)) * inv;
         data[i + 2] = Math.round((data[i + 2] / 255) * (levels - 1)) * inv;
       }
-      outCtx.putImageData(imageData, 0, 0);
+      qctx.putImageData(imageData, 0, 0);
+
+      outCtx.save();
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.globalAlpha = Math.min(0.92, 0.35 + quantization * 0.55);
+      outCtx.drawImage(this.quantCanvas, 0, 0, qW, qH, 0, 0, width, height);
+      outCtx.restore();
     }
 
     if (timestampOSD > 0) {
