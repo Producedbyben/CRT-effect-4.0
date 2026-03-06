@@ -1578,6 +1578,29 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedFilmHalation",
   ];
 
+  const macroControlIds = [
+    "macroSourceProvenance",
+    "shapeGenerationDepth",
+    "macroDisplayEmulation",
+    "shapeTubeAge",
+    "macroSignalPathDamage",
+    "shapePathInstability",
+    "macroDistributionArtifacts",
+    "shapeEventRate",
+    "macroDigitalDecay",
+    "shapeBitrateStress",
+    "macroRecoveryRuin",
+    "shapeTextureKeep",
+    "macroEraStyling",
+    "shapeOverlayContext",
+  ];
+
+  const PARAM_LIMITS = Object.fromEntries(controlIds.map((id) => {
+    const input = document.getElementById(id);
+    return [id, { min: Number(input?.min), max: Number(input?.max) }];
+  }));
+
+
   let hasLoadedSource = false;
   let loadedSourceType = "image";
   let loadedVideo = null;
@@ -1645,6 +1668,20 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     advancedFilmScratches: "Film scratches",
     advancedFilmGateWeave: "Gate weave",
     advancedFilmHalation: "Halation glow",
+    macroSourceProvenance: "Source Provenance",
+    shapeGenerationDepth: "Generation Depth",
+    macroDisplayEmulation: "Display Emulation",
+    shapeTubeAge: "Tube Age",
+    macroSignalPathDamage: "Signal Path Damage",
+    shapePathInstability: "Path Instability",
+    macroDistributionArtifacts: "Distribution Artifacts",
+    shapeEventRate: "Event Rate",
+    macroDigitalDecay: "Digital Decay",
+    shapeBitrateStress: "Bitrate Stress",
+    macroRecoveryRuin: "Recovery ↔ Ruin",
+    shapeTextureKeep: "Texture Keep",
+    macroEraStyling: "Era Styling",
+    shapeOverlayContext: "Overlay Context",
   };
 
   function setupRangeWithNumber(id) {
@@ -2072,7 +2109,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   function resetParameters() {
     const targetValues = defaultParamValues || readParams();
-    for (const id of controlIds) {
+    for (const id of [...controlIds, ...macroControlIds]) {
       if (typeof targetValues[id] === "number") {
         const slider = document.getElementById(id);
         slider.value = targetValues[id];
@@ -2153,8 +2190,82 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     }
   }
 
+  function clampControlValue(id, value) {
+    const limits = PARAM_LIMITS[id] || {};
+    let next = Number.isFinite(value) ? value : 0;
+    if (Number.isFinite(limits.min)) next = Math.max(limits.min, next);
+    if (Number.isFinite(limits.max)) next = Math.min(limits.max, next);
+    return next;
+  }
+
+  function addMacroValue(values, id, delta) {
+    values[id] = clampControlValue(id, Number(values[id] || 0) + delta);
+  }
+
+  function applyMacroSystems(values) {
+    const macrosEnabled = document.getElementById("macroSystemsEnabled")?.checked !== false;
+    if (!macrosEnabled) return values;
+
+    const macro = (id) => Number(document.getElementById(id)?.value || 0);
+
+    const source = macro("macroSourceProvenance");
+    const generation = macro("shapeGenerationDepth");
+    addMacroValue(values, "advancedGenerationLoss", source * (0.25 + generation * 0.75));
+    addMacroValue(values, "noise", source * 0.35);
+    addMacroValue(values, "advancedGhosting", source * 0.25 * generation);
+
+    const display = macro("macroDisplayEmulation");
+    const tubeAge = macro("shapeTubeAge");
+    addMacroValue(values, "scanlineStrength", display * 0.32);
+    addMacroValue(values, "phosphorMask", display * 0.28);
+    addMacroValue(values, "bloom", display * (0.15 + tubeAge * 0.35));
+    addMacroValue(values, "flicker", display * tubeAge * 0.25);
+
+    const signal = macro("macroSignalPathDamage");
+    const instability = macro("shapePathInstability");
+    addMacroValue(values, "advancedChromaDelay", signal * 0.5);
+    addMacroValue(values, "advancedCrossColor", signal * 0.45);
+    addMacroValue(values, "advancedLineJitter", signal * (0.2 + instability * 0.45));
+    addMacroValue(values, "advancedTimebaseWobble", signal * (0.15 + instability * 0.45));
+
+    const distribution = macro("macroDistributionArtifacts");
+    const eventRate = macro("shapeEventRate");
+    addMacroValue(values, "advancedDropouts", distribution * (0.25 + eventRate * 0.6));
+    addMacroValue(values, "advancedTapeCrease", distribution * eventRate * 0.55);
+    addMacroValue(values, "advancedRfInterference", distribution * 0.5);
+    addMacroValue(values, "advancedInterlacing", distribution * 0.35);
+
+    const digital = macro("macroDigitalDecay");
+    const bitrateStress = macro("shapeBitrateStress");
+    addMacroValue(values, "advancedQuantization", digital * (0.2 + bitrateStress * 0.7));
+    addMacroValue(values, "advancedMacroBlocking", digital * (0.1 + bitrateStress * 0.85));
+    addMacroValue(values, "advancedFrameStutter", digital * bitrateStress * 0.35);
+
+    const recover = macro("macroRecoveryRuin");
+    const textureKeep = macro("shapeTextureKeep");
+    if (recover >= 0) {
+      addMacroValue(values, "noise", recover * (0.25 + (1 - textureKeep) * 0.4));
+      addMacroValue(values, "advancedFilmDust", recover * 0.4);
+      addMacroValue(values, "advancedFilmScratches", recover * 0.25);
+    } else {
+      addMacroValue(values, "noise", recover * (0.18 + textureKeep * 0.2));
+      addMacroValue(values, "advancedMacroBlocking", recover * 0.15);
+      addMacroValue(values, "advancedQuantization", recover * 0.12);
+    }
+
+    const era = macro("macroEraStyling");
+    const overlay = macro("shapeOverlayContext");
+    addMacroValue(values, "advancedFilmGrain", era * 0.45);
+    addMacroValue(values, "advancedFilmHalation", era * 0.35);
+    addMacroValue(values, "advancedWhiteBalanceDrift", era * 0.3);
+    addMacroValue(values, "advancedTimestampOSD", era * (0.15 + overlay * 0.65));
+
+    return values;
+  }
+
   function readParams() {
     const values = Object.fromEntries(controlIds.map((id) => [id, Number(document.getElementById(id).value)]));
+    applyMacroSystems(values);
     for (const [panelName, config] of Object.entries(EFFECT_PANEL_CONFIGS)) {
       if (panelEffectState[panelName]?.enabled) continue;
       for (const id of config.controlIds) values[id] = 0;
@@ -2665,7 +2776,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     clearLoadedSource();
   });
 
-  for (const id of [...controlIds, "fps", "duration", "presetIntensity"]) {
+  for (const id of [...controlIds, ...macroControlIds, "fps", "duration", "presetIntensity"]) {
     document.getElementById(id).addEventListener("input", () => {
       markPreviewDirty();
       progressEl.value = 0;
@@ -2676,6 +2787,11 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
 
   document.getElementById("exportQuality")?.addEventListener("input", () => {
     updateExportEstimate();
+  });
+
+  document.getElementById("macroSystemsEnabled")?.addEventListener("input", () => {
+    markPreviewDirty();
+    progressEl.value = 0;
   });
 
   presetIntensityInput?.addEventListener("input", () => {
@@ -2692,7 +2808,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
-  for (const id of [...controlIds, "previewTime", "presetIntensity", "quickPresetIntensity", "quickScanlineStrength", "quickBloom", "quickChroma"]) {
+  for (const id of [...controlIds, ...macroControlIds, "previewTime", "presetIntensity", "quickPresetIntensity", "quickScanlineStrength", "quickBloom", "quickChroma"]) {
     setupRangeWithNumber(id);
   }
 
