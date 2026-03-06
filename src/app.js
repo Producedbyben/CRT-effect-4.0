@@ -24,6 +24,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0,
     advancedTapeCrease: 0,
     advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "PVM/BVM": {
     scanlineStrength: 0.25,
@@ -50,6 +54,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0,
     advancedTapeCrease: 0,
     advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   Arcade: {
     scanlineStrength: 0.4,
@@ -76,6 +84,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0,
     advancedTapeCrease: 0,
     advancedTimestampOSD: 0,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "Late-80s Home VHS": {
     scanlineStrength: 0.52,
@@ -102,6 +114,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.18,
     advancedTapeCrease: 0.2,
     advancedTimestampOSD: 0.54,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "90s Rental Tape (3rd Gen Dub)": {
     scanlineStrength: 0.59,
@@ -128,6 +144,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.24,
     advancedTapeCrease: 0.37,
     advancedTimestampOSD: 0.62,
+    advancedOSDStyle: 2,
+    advancedCctvMonochrome: 0.05,
+    advancedQuantization: 0.18,
+    advancedGenerationLoss: 0.72,
   },
   "Hi8 Vacation Cam": {
     scanlineStrength: 0.41,
@@ -154,6 +174,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.17,
     advancedTapeCrease: 0.12,
     advancedTimestampOSD: 0.47,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "MiniDV Family Cam (2002)": {
     scanlineStrength: 0.3,
@@ -180,6 +204,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.12,
     advancedTapeCrease: 0.08,
     advancedTimestampOSD: 0.51,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "Off-Air Analog Broadcast": {
     scanlineStrength: 0.45,
@@ -206,6 +234,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.11,
     advancedTapeCrease: 0.19,
     advancedTimestampOSD: 0.38,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "Public Access Archive": {
     scanlineStrength: 0.43,
@@ -232,6 +264,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.15,
     advancedTapeCrease: 0.22,
     advancedTimestampOSD: 0.68,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "Early Web Rip (2006)": {
     scanlineStrength: 0.37,
@@ -258,6 +294,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.08,
     advancedTapeCrease: 0.05,
     advancedTimestampOSD: 0.31,
+    advancedOSDStyle: 1,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0.74,
+    advancedGenerationLoss: 0.43,
   },
   "Security Camera Dump": {
     scanlineStrength: 0.46,
@@ -284,6 +324,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.09,
     advancedTapeCrease: 0.18,
     advancedTimestampOSD: 0.76,
+    advancedOSDStyle: 3,
+    advancedCctvMonochrome: 0.86,
+    advancedQuantization: 0.66,
+    advancedGenerationLoss: 0.38,
   },
   "Bootleg Concert Cam": {
     scanlineStrength: 0.55,
@@ -310,6 +354,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.4,
     advancedTapeCrease: 0.39,
     advancedTimestampOSD: 0.57,
+    advancedOSDStyle: 0,
+    advancedCctvMonochrome: 0,
+    advancedQuantization: 0,
+    advancedGenerationLoss: 0,
   },
   "Damaged Archive Recovery": {
     scanlineStrength: 0.49,
@@ -336,6 +384,10 @@ const FALLBACK_PRESETS = {
     advancedFocusBreathing: 0.31,
     advancedTapeCrease: 0.52,
     advancedTimestampOSD: 0.81,
+    advancedOSDStyle: 2,
+    advancedCctvMonochrome: 0.24,
+    advancedQuantization: 0.4,
+    advancedGenerationLoss: 0.79,
   },
 };
 
@@ -460,6 +512,10 @@ class CRTRenderer {
     const focusBreathing = Math.max(0, Math.min(1, Number(params.advancedFocusBreathing) || 0));
     const tapeCrease = Math.max(0, Math.min(1, Number(params.advancedTapeCrease) || 0));
     const timestampOSD = Math.max(0, Math.min(1, Number(params.advancedTimestampOSD) || 0));
+    const osdStyle = Math.max(0, Math.min(3, Math.round(Number(params.advancedOSDStyle) || 0)));
+    const cctvMonochrome = Math.max(0, Math.min(1, Number(params.advancedCctvMonochrome) || 0));
+    const quantization = Math.max(0, Math.min(1, Number(params.advancedQuantization) || 0));
+    const generationLoss = Math.max(0, Math.min(1, Number(params.advancedGenerationLoss) || 0));
 
     const stutterHoldFrames = Math.floor(frameStutter * frameStutter * 6);
     const stutteredFrame = stutterHoldFrames > 0 ? frameIndex - (frameIndex % (stutterHoldFrames + 1)) : frameIndex;
@@ -587,6 +643,36 @@ class CRTRenderer {
       outCtx.restore();
     }
 
+    if (generationLoss > 0) {
+      const dubPasses = Math.max(1, Math.floor(1 + generationLoss * 3));
+      for (let i = 0; i < dubPasses; i++) {
+        const shift = Math.round((i + 1) * (0.5 + generationLoss * 1.8));
+        const sat = Math.max(0.25, 1 - generationLoss * (0.26 + i * 0.07));
+        const contrast = Math.max(0.65, 1 - generationLoss * (0.12 + i * 0.04));
+        outCtx.save();
+        outCtx.globalAlpha = Math.min(0.34, 0.11 + generationLoss * 0.2);
+        outCtx.filter = `blur(${(generationLoss * (0.9 + i * 0.45)).toFixed(2)}px) saturate(${sat.toFixed(3)}) contrast(${contrast.toFixed(3)})`;
+        outCtx.drawImage(outCtx.canvas, shift, 0);
+        outCtx.drawImage(outCtx.canvas, -shift, 0);
+        outCtx.restore();
+      }
+    }
+
+    if (cctvMonochrome > 0) {
+      outCtx.save();
+      outCtx.globalAlpha = Math.min(0.9, 0.2 + cctvMonochrome * 0.7);
+      outCtx.filter = `grayscale(1) contrast(${(1 + cctvMonochrome * 0.22).toFixed(3)}) brightness(${(0.95 + cctvMonochrome * 0.08).toFixed(3)})`;
+      outCtx.drawImage(outCtx.canvas, 0, 0);
+      outCtx.restore();
+
+      outCtx.save();
+      outCtx.globalCompositeOperation = "multiply";
+      outCtx.globalAlpha = cctvMonochrome * 0.25;
+      outCtx.fillStyle = "rgb(145 182 148)";
+      outCtx.fillRect(0, 0, width, height);
+      outCtx.restore();
+    }
+
     const bloom = params.bloom;
     if (bloom > 0) {
       outCtx.save();
@@ -696,17 +782,52 @@ class CRTRenderer {
       }
     }
 
+    if (quantization > 0) {
+      const levels = Math.max(4, Math.round(64 - quantization * 56));
+      const imageData = outCtx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const inv = 255 / (levels - 1);
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.round((data[i] / 255) * (levels - 1)) * inv;
+        data[i + 1] = Math.round((data[i + 1] / 255) * (levels - 1)) * inv;
+        data[i + 2] = Math.round((data[i + 2] / 255) * (levels - 1)) * inv;
+      }
+      outCtx.putImageData(imageData, 0, 0);
+    }
+
     if (timestampOSD > 0) {
       const baseDate = new Date("1998-10-31T22:48:00Z");
       baseDate.setSeconds(baseDate.getSeconds() + Math.floor(temporalSeconds));
       const stamp = `${String(baseDate.getUTCMonth() + 1).padStart(2, "0")}/${String(baseDate.getUTCDate()).padStart(2, "0")}/${String(baseDate.getUTCFullYear()).slice(-2)} ${String(baseDate.getUTCHours()).padStart(2, "0")}:${String(baseDate.getUTCMinutes()).padStart(2, "0")}:${String(baseDate.getUTCSeconds()).padStart(2, "0")}`;
+      const flickerAlpha = 0.35 + seededNoise(temporalFrame, temporalSeconds, 113) * 0.45;
+      const osdAlpha = Math.min(0.9, timestampOSD * flickerAlpha);
+      const padX = Math.floor(width * 0.03);
+      const padY = Math.floor(height * 0.95);
+
       outCtx.save();
       outCtx.font = `${Math.max(12, Math.floor(height * 0.027))}px monospace`;
       outCtx.textBaseline = "bottom";
-      const flickerAlpha = 0.35 + seededNoise(temporalFrame, temporalSeconds, 113) * 0.45;
-      outCtx.globalAlpha = Math.min(0.85, timestampOSD * flickerAlpha);
-      outCtx.fillStyle = "rgb(255 168 74)";
-      outCtx.fillText(stamp, Math.floor(width * 0.03), Math.floor(height * 0.95));
+      outCtx.globalAlpha = osdAlpha;
+
+      if (osdStyle === 0) {
+        outCtx.fillStyle = "rgb(255 168 74)";
+        outCtx.fillText(stamp, padX, padY);
+      } else if (osdStyle === 1) {
+        outCtx.fillStyle = "rgb(237 244 255)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillStyle = "rgb(255 58 58)";
+        outCtx.fillText("REC", padX, Math.floor(height * 0.08));
+      } else if (osdStyle === 2) {
+        outCtx.fillStyle = "rgb(122 255 124)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CH 03", Math.floor(width * 0.03), Math.floor(height * 0.09));
+        outCtx.fillText("SP", Math.floor(width * 0.9), Math.floor(height * 0.09));
+      } else {
+        outCtx.fillStyle = "rgb(170 255 170)";
+        outCtx.fillText(stamp, padX, padY);
+        outCtx.fillText("CAM 4", Math.floor(width * 0.82), Math.floor(height * 0.09));
+      }
+
       outCtx.restore();
     }
   }
@@ -999,6 +1120,10 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     "advancedFocusBreathing",
     "advancedTapeCrease",
     "advancedTimestampOSD",
+    "advancedOSDStyle",
+    "advancedCctvMonochrome",
+    "advancedQuantization",
+    "advancedGenerationLoss",
   ];
 
   let hasLoadedSource = false;

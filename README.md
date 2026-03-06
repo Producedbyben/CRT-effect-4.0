@@ -59,6 +59,10 @@ In addition to the original CRT + analog controls, the advanced panel now includ
 - **Focus breathing** (periodic softness pulses)
 - **Tape crease events** (localized horizontal warp/chew style damage)
 - **Timestamp OSD** (camcorder-style date/time burn-in)
+- **OSD style** (switches between camcorder/VCR/CCTV-like text treatments)
+- **CCTV monochrome** (surveillance-style grayscale with slight green cast)
+- **Quantization/crush** (reduced tonal levels for low-bitrate or low-quality capture feel)
+- **Generation loss** (copy-of-copy dub degradation passes)
 
 These are all deterministic per frame, so preview and export stay visually aligned.
 
