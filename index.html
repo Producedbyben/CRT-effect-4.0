@@ -22,6 +22,18 @@
               <span id="presetDirtyTag" class="dirty-tag" hidden>Modified</span>
             </div>
             <div id="presetSelect" class="selection-box selection-box-wrap" role="radiogroup" aria-label="Preset"></div>
+            <label>Preset intensity <span class="range-control"><input id="presetIntensity" type="range" min="0" max="1.5" step="0.01" value="1" /></span></label>
+            <label>Mask pattern
+              <div id="maskType" class="selection-box selection-inline" role="radiogroup" aria-label="Mask pattern">
+                <button type="button" data-value="phosphor" data-selected="true">Phosphor triad</button>
+                <button type="button" data-value="aperture">Aperture grille</button>
+                <button type="button" data-value="slot">Slot mask</button>
+                <button type="button" data-value="dot">Dot mask</button>
+                <button type="button" data-value="filmSuper8">Super 8 stock</button>
+                <button type="button" data-value="film16mm">16mm stock</button>
+                <button type="button" data-value="none">None</button>
+              </div>
+            </label>
             <div class="actions two-up compact-actions">
               <button id="resetParamsBtn" type="button">Reset look</button>
               <button id="resetSourceBtn" type="button">Reset source</button>
@@ -169,6 +181,11 @@
               <label>Quantization/crush <span class="range-control"><input id="advancedQuantization" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
               <label>Generation loss <span class="range-control"><input id="advancedGenerationLoss" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
               <label>Macroblocking <span class="range-control"><input id="advancedMacroBlocking" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Film grain <span class="range-control"><input id="advancedFilmGrain" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Film dust/specks <span class="range-control"><input id="advancedFilmDust" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Film scratches <span class="range-control"><input id="advancedFilmScratches" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Gate weave <span class="range-control"><input id="advancedFilmGateWeave" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
+              <label>Halation glow <span class="range-control"><input id="advancedFilmHalation" type="range" min="0" max="1" step="0.01" value="0" /></span></label>
             </div>
           </section>
         </section>
