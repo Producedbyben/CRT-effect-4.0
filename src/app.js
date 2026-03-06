@@ -1113,6 +1113,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   const osdStyleInput = document.getElementById("advancedOSDStyle");
   const compareHoldBtn = document.getElementById("compareHoldBtn");
   const presetDirtyTag = document.getElementById("presetDirtyTag");
+  const exportEstimateEl = document.getElementById("exportEstimate");
 
   const controlIds = [
     "scanlineStrength",
@@ -1160,7 +1161,37 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   let isExporting = false;
   let previewDirty = true;
   let showOriginalPreview = false;
+  let compareLocked = false;
   let activePresetName = null;
+
+  const RANGE_CONTROL_LABELS = {
+    scanlineStrength: "Scanline strength",
+    phosphorMask: "Phosphor mask",
+    barrelDistortion: "Barrel distortion",
+    bloom: "Bloom",
+    flicker: "Flicker",
+    chromaticAberration: "Chromatic aberration",
+    noise: "Noise",
+    previewTime: "Preview frame",
+    advancedLineJitter: "Line jitter",
+    advancedTimebaseWobble: "Timebase wobble",
+    advancedHeadSwitching: "Head-switching noise",
+    advancedChromaDelay: "Luma/chroma delay",
+    advancedCrossColor: "Cross-color artifacts",
+    advancedDropouts: "Dropouts/tracking",
+    advancedGhosting: "Ghosting/trailing",
+    advancedInterlacing: "Interlacing",
+    advancedFrameStutter: "Frame stutter/drop",
+    advancedRfInterference: "RF interference bands",
+    advancedExposurePump: "Exposure pumping",
+    advancedWhiteBalanceDrift: "White balance drift",
+    advancedFocusBreathing: "Focus breathing",
+    advancedTapeCrease: "Tape crease events",
+    advancedTimestampOSD: "Timestamp intensity",
+    advancedCctvMonochrome: "CCTV monochrome",
+    advancedQuantization: "Quantization/crush",
+    advancedGenerationLoss: "Generation loss",
+  };
 
   function setupRangeWithNumber(id) {
     const slider = document.getElementById(id);
@@ -1178,9 +1209,18 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     numericInput.setAttribute("aria-label", `${id} numeric value`);
     wrapper.appendChild(numericInput);
 
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "range-reset";
+    resetBtn.textContent = "↺";
+    resetBtn.title = "Reset to default";
+    resetBtn.setAttribute("aria-label", `Reset ${RANGE_CONTROL_LABELS[id] || id} to default`);
+    wrapper.appendChild(resetBtn);
+
     const syncToNumber = () => {
       numericInput.value = slider.value;
       numericInput.disabled = slider.disabled;
+      resetBtn.disabled = slider.disabled;
     };
 
     const clampToRange = (value) => {
@@ -1204,6 +1244,41 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       slider.value = String(next);
       numericInput.value = slider.value;
       slider.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    numericInput.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      const baseStep = Number(slider.step) || 1;
+      const multiplier = event.shiftKey ? 0.1 : (event.altKey ? 10 : 1);
+      const direction = event.key === "ArrowUp" ? 1 : -1;
+      const current = Number(slider.value) || 0;
+      const next = clampToRange(current + (baseStep * multiplier * direction));
+      slider.value = String(next);
+      numericInput.value = slider.value;
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+      slider.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    slider.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      if (!event.shiftKey && !event.altKey) return;
+      event.preventDefault();
+      const direction = (event.key === "ArrowRight" || event.key === "ArrowUp") ? 1 : -1;
+      const baseStep = Number(slider.step) || 1;
+      const multiplier = event.shiftKey ? 0.1 : 10;
+      const current = Number(slider.value) || 0;
+      const next = clampToRange(current + (baseStep * multiplier * direction));
+      slider.value = String(next);
+      numericInput.value = slider.value;
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+      slider.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    resetBtn.addEventListener("click", () => {
+      resetSingleControlToDefault(id);
+      progressEl.value = 0;
+      markPreviewDirty();
     });
 
     slider.addEventListener("input", syncToNumber);
@@ -1301,6 +1376,14 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     document.getElementById("exportQuality").disabled = isExporting;
     exportFormatControl?.setDisabled(isExporting);
     updateExportControlsState();
+  }
+
+  function updateExportEstimate() {
+    if (!exportEstimateEl) return;
+    const fps = Math.max(1, Number(document.getElementById("fps").value) || 30);
+    const duration = Math.max(0.1, Number(document.getElementById("duration").value) || 4);
+    const totalFrames = Math.max(1, Math.round(fps * duration));
+    exportEstimateEl.textContent = `Export summary: ${totalFrames} frames at ${fps} FPS (${duration.toFixed(1)}s).`;
   }
 
   let previewModeControl;
@@ -1478,6 +1561,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     progressEl.value = 0;
     markPreviewDirty();
     setExportAvailability();
+    setCompareState(false, { lock: false });
 
     if (!silent) {
       setStatus("Source reset. Load a new image or video.", "info");
@@ -1952,6 +2036,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
       markPreviewDirty();
       progressEl.value = 0;
       updatePresetDirtyState();
+      if (id === "fps" || id === "duration") updateExportEstimate();
     });
   }
 
@@ -2045,20 +2130,39 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
     });
   }
 
-  const setCompareState = (enabled) => {
+  function setCompareState(enabled, { lock = compareLocked } = {}) {
+    compareLocked = !!lock;
     showOriginalPreview = enabled;
-    if (compareHoldBtn) compareHoldBtn.dataset.selected = enabled ? "true" : "false";
+    if (compareHoldBtn) {
+      compareHoldBtn.dataset.selected = enabled ? "true" : "false";
+      compareHoldBtn.classList.toggle("compare-active", enabled);
+      compareHoldBtn.textContent = compareLocked ? "Comparing original (locked)" : "Compare original";
+      compareHoldBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    }
     markPreviewDirty();
-  };
+  }
 
-  compareHoldBtn?.addEventListener("pointerdown", () => setCompareState(true));
-  compareHoldBtn?.addEventListener("pointerup", () => setCompareState(false));
-  compareHoldBtn?.addEventListener("pointerleave", () => setCompareState(false));
+  compareHoldBtn?.addEventListener("pointerdown", () => setCompareState(true, { lock: false }));
+  compareHoldBtn?.addEventListener("pointerup", () => {
+    if (!compareLocked) setCompareState(false, { lock: false });
+  });
+  compareHoldBtn?.addEventListener("pointerleave", () => {
+    if (!compareLocked) setCompareState(false, { lock: false });
+  });
+  compareHoldBtn?.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    compareLocked = !compareLocked;
+    setCompareState(compareLocked, { lock: compareLocked });
+    setStatus(compareLocked ? "Compare locked: showing original." : "Compare unlocked.", "info");
+  });
   compareHoldBtn?.addEventListener("keydown", (event) => {
-    if (event.code === "Space") setCompareState(true);
+    if (event.code === "Space") setCompareState(true, { lock: compareLocked });
   });
   compareHoldBtn?.addEventListener("keyup", (event) => {
-    if (event.code === "Space") setCompareState(false);
+    if (event.code === "Space" && !compareLocked) setCompareState(false, { lock: false });
+  });
+  compareHoldBtn?.addEventListener("blur", () => {
+    if (!compareLocked) setCompareState(false, { lock: false });
   });
 
   setupTabs();
@@ -2069,6 +2173,7 @@ async function exportWebmRealtime({ canvas, renderer, params, fps, duration, loa
   updatePreviewControlsState();
   updateExportControlsState();
   syncPreviewTimeControl();
+  updateExportEstimate();
   window.addEventListener("beforeunload", () => {
     if (loadedVideo?.objectUrl) {
       URL.revokeObjectURL(loadedVideo.objectUrl);
